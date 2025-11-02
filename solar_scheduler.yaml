@@ -1,0 +1,212 @@
+esphome:
+  name: solar_scheduler
+  friendly_name: Solar Scheduler
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+  level: INFO
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+  ap:
+    ssid: "Solar-Scheduler-AP"
+    password: "configuremoi"
+  reboot_timeout: 0s
+
+captive_portal:
+
+ota:
+  - platform: esphome
+    password: "esp32_ota_admin"
+
+api:
+  encryption:
+    key: "CHANGEZ_CETTE_CLE_API_UNIQUE_DE_256_BITS"
+
+web_server:
+  port: 80
+
+time:
+  - platform: sntp
+    id: sntp_time
+    update_interval: 6h
+    timezone: Europe/Brussels
+    on_time:
+      - at:
+          time: !lambda "return id(heure_fixe_on).state.strftime('%H:%M:%S');"
+        then:
+          - if:
+              condition:
+                lambda: |-
+                  return id(mode_fixe_active).state && 
+                         !id(mode_sunrise_active).state && 
+                         !id(mode_sunset_active).state;
+              then:
+                - switch.turn_on: controle_relais
+                - logger.log: "Mode Fixe: Relais ALLUMÉ"
+      - at:
+          time: !lambda "return id(heure_fixe_off).state.strftime('%H:%M:%S');"
+        then:
+          - if:
+              condition:
+                lambda: |-
+                  return id(mode_fixe_active).state && 
+                         !id(mode_sunrise_active).state && 
+                         !id(mode_sunset_active).state;
+              then:
+                - switch.turn_off: controle_relais
+                - logger.log: "Mode Fixe: Relais ÉTEINT"
+
+sun:
+  id: "soleil"
+  latitude: !lambda "return id(latitude_config).state;"
+  longitude: !lambda "return id(longitude_config).state;"
+
+sensor:
+  - platform: sun
+    sun_id: soleil
+    name: "Heure Lever de Soleil"
+    type: sunrise
+    icon: "mdi:weather-sunset-up"
+    entity_category: "diagnostic"
+  - platform: sun
+    sun_id: soleil
+    name: "Heure Coucher de Soleil"
+    type: sunset
+    icon: "mdi:weather-sunset-down"
+    entity_category: "diagnostic"
+  - platform: sun
+    sun_id: soleil
+    name: "Soleil Élévation"
+    type: elevation
+    update_interval: 10min
+    icon: "mdi:chart-gantt"
+    entity_category: "diagnostic"
+
+binary_sensor:
+  - platform: gpio
+    pin: GPIO2
+    name: "État Relais (lecture)"
+    id: etat_relais_lecture
+    device_class: power
+
+switch:
+  - platform: gpio
+    name: "Contrôle Relais"
+    id: controle_relais
+    pin: GPIO2
+    on_turn_on:
+      - logger.log: "✓ Relais activé (GPIO2 HIGH)"
+    on_turn_off:
+      - logger.log: "✗ Relais désactivé (GPIO2 LOW)"
+
+input_boolean:
+  - name: "Mode Horaire Fixe"
+    id: mode_fixe_active
+    icon: "mdi:clock-check"
+    on_turn_on:
+      - input_boolean.turn_off: mode_sunrise_active
+      - input_boolean.turn_off: mode_sunset_active
+      - logger.log: "Mode: Horaire Fixe"
+  - name: "Mode Sunrise"
+    id: mode_sunrise_active
+    icon: "mdi:weather-sunset-up"
+    on_turn_on:
+      - input_boolean.turn_off: mode_fixe_active
+      - input_boolean.turn_off: mode_sunset_active
+      - logger.log: "Mode: Sunrise"
+  - name: "Mode Sunset"
+    id: mode_sunset_active
+    icon: "mdi:weather-sunset-down"
+    on_turn_on:
+      - input_boolean.turn_off: mode_fixe_active
+      - input_boolean.turn_off: mode_sunrise_active
+      - logger.log: "Mode: Sunset"
+
+input_number:
+  - name: "Latitude"
+    id: latitude_config
+    min_value: -90
+    max_value: 90
+    step: 0.0001
+    initial_value: 50.4674
+    mode: box
+    icon: "mdi:map-marker"
+  - name: "Longitude"
+    id: longitude_config
+    min_value: -180
+    max_value: 180
+    step: 0.0001
+    initial_value: 4.8675
+    mode: box
+    icon: "mdi:map-marker"
+  - name: "Offset Sunrise (min)"
+    id: offset_sunrise
+    min_value: -120
+    max_value: 120
+    step: 1
+    initial_value: 0
+    mode: slider
+    icon: "mdi:timer-sand"
+  - name: "Offset Sunset (min)"
+    id: offset_sunset
+    min_value: -120
+    max_value: 120
+    step: 1
+    initial_value: 0
+    mode: slider
+    icon: "mdi:timer-sand"
+
+input_datetime:
+  - name: "Heure Fixe (ON)"
+    id: heure_fixe_on
+    time:
+      use_date: false
+  - name: "Heure Fixe (OFF)"
+    id: heure_fixe_off
+    time:
+      use_date: false
+
+on_sunrise:
+  - then:
+      - if:
+          condition:
+            lambda: |-
+              return id(mode_sunrise_active).state && 
+                     !id(mode_fixe_active).state && 
+                     !id(mode_sunset_active).state;
+          then:
+            - delay: !lambda |-
+                int offset_min = id(offset_sunrise).state;
+                if (offset_min < -120) offset_min = -120;
+                if (offset_min > 120) offset_min = 120;
+                return offset_min * 60000;
+            - switch.turn_off: controle_relais
+            - logger.log: 
+                format: "Mode Sunrise: Relais ÉTEINT (offset: %.0f min)"
+                args: [ 'id(offset_sunrise).state' ]
+
+on_sunset:
+  - then:
+      - if:
+          condition:
+            lambda: |-
+              return id(mode_sunset_active).state && 
+                     !id(mode_fixe_active).state && 
+                     !id(mode_sunrise_active).state;
+          then:
+            - delay: !lambda |-
+                int offset_min = id(offset_sunset).state;
+                if (offset_min < -120) offset_min = -120;
+                if (offset_min > 120) offset_min = 120;
+                return offset_min * 60000;
+            - switch.turn_on: controle_relais
+            - logger.log: 
+                format: "Mode Sunset: Relais ALLUMÉ (offset: %.0f min)"
+                args: [ 'id(offset_sunset).state' ]
