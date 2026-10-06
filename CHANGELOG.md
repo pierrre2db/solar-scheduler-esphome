@@ -12,6 +12,7 @@
 ### À venir
 - Support multi-relais
 - Interface de configuration avancée
+- Amélioration de l'interface web
 
 ## [1.0.0] - 2025-11-02
 
