@@ -1,6 +1,19 @@
+substitutions:
+  # Position (modifier puis recompiler : sun: n'accepte pas de valeurs dynamiques)
+  latitude: "50.4674"
+  longitude: "4.8675"
+  # Relais (éviter GPIO2/8/9 sur ESP32-C3 : broches de strapping)
+  relay_pin: GPIO4
+  relay_inverted: "false"
+
 esphome:
-  name: solar_scheduler
+  name: solar-scheduler
   friendly_name: Solar Scheduler
+  on_boot:
+    priority: -100
+    then:
+      - delay: 5s
+      - script.execute: appliquer_etat_initial
 
 esp32:
   board: esp32-c3-devkitm-1
@@ -16,197 +29,230 @@ wifi:
   fast_connect: true
   ap:
     ssid: "Solar-Scheduler-AP"
-    password: "configuremoi"
-  reboot_timeout: 0s
+    password: !secret ap_password
 
 captive_portal:
 
 ota:
   - platform: esphome
-    password: "esp32_ota_admin"
+    password: !secret ota_password
 
 api:
   encryption:
-    key: "CHANGEZ_CETTE_CLE_API_UNIQUE_DE_256_BITS"
+    key: !secret api_key
 
 web_server:
   port: 80
+  version: 3
+  auth:
+    username: admin
+    password: !secret web_password
 
 time:
   - platform: sntp
     id: sntp_time
     update_interval: 6h
     timezone: Europe/Brussels
-    on_time:
-      - at:
-          time: !lambda "return id(heure_fixe_on).state.strftime('%H:%M:%S');"
-        then:
-          - if:
-              condition:
-                lambda: |-
-                  return id(mode_fixe_active).state && 
-                         !id(mode_sunrise_active).state && 
-                         !id(mode_sunset_active).state;
-              then:
-                - switch.turn_on: controle_relais
-                - logger.log: "Mode Fixe: Relais ALLUMÉ"
-      - at:
-          time: !lambda "return id(heure_fixe_off).state.strftime('%H:%M:%S');"
-        then:
-          - if:
-              condition:
-                lambda: |-
-                  return id(mode_fixe_active).state && 
-                         !id(mode_sunrise_active).state && 
-                         !id(mode_sunset_active).state;
-              then:
-                - switch.turn_off: controle_relais
-                - logger.log: "Mode Fixe: Relais ÉTEINT"
 
 sun:
-  id: "soleil"
-  latitude: !lambda "return id(latitude_config).state;"
-  longitude: !lambda "return id(longitude_config).state;"
+  id: soleil
+  latitude: ${latitude}
+  longitude: ${longitude}
 
 sensor:
-  - platform: sun
-    sun_id: soleil
+  - platform: template
     name: "Heure Lever de Soleil"
-    type: sunrise
+    id: heure_lever
+    lambda: |-
+      auto t = id(soleil).sunrise(-0.833);
+      if (!t.has_value()) return {};
+      return t->hour + t->minute / 60.0f;
+    unit_of_measurement: "h"
+    accuracy_decimals: 2
+    update_interval: 1min
     icon: "mdi:weather-sunset-up"
-    entity_category: "diagnostic"
-  - platform: sun
-    sun_id: soleil
+    entity_category: diagnostic
+  - platform: template
     name: "Heure Coucher de Soleil"
-    type: sunset
+    id: heure_coucher
+    lambda: |-
+      auto t = id(soleil).sunset(-0.833);
+      if (!t.has_value()) return {};
+      return t->hour + t->minute / 60.0f;
+    unit_of_measurement: "h"
+    accuracy_decimals: 2
+    update_interval: 1min
     icon: "mdi:weather-sunset-down"
-    entity_category: "diagnostic"
+    entity_category: diagnostic
   - platform: sun
     sun_id: soleil
     name: "Soleil Élévation"
     type: elevation
     update_interval: 10min
     icon: "mdi:chart-gantt"
-    entity_category: "diagnostic"
-
-binary_sensor:
-  - platform: gpio
-    pin: GPIO2
-    name: "État Relais (lecture)"
-    id: etat_relais_lecture
-    device_class: power
+    entity_category: diagnostic
 
 switch:
   - platform: gpio
     name: "Contrôle Relais"
     id: controle_relais
-    pin: GPIO2
+    pin:
+      number: ${relay_pin}
+      inverted: ${relay_inverted}
+    restore_mode: RESTORE_DEFAULT_OFF
     on_turn_on:
-      - logger.log: "✓ Relais activé (GPIO2 HIGH)"
+      - logger.log: "Relais activé"
     on_turn_off:
-      - logger.log: "✗ Relais désactivé (GPIO2 LOW)"
+      - logger.log: "Relais désactivé"
 
-input_boolean:
-  - name: "Mode Horaire Fixe"
-    id: mode_fixe_active
-    icon: "mdi:clock-check"
-    on_turn_on:
-      - input_boolean.turn_off: mode_sunrise_active
-      - input_boolean.turn_off: mode_sunset_active
-      - logger.log: "Mode: Horaire Fixe"
-  - name: "Mode Sunrise"
-    id: mode_sunrise_active
-    icon: "mdi:weather-sunset-up"
-    on_turn_on:
-      - input_boolean.turn_off: mode_fixe_active
-      - input_boolean.turn_off: mode_sunset_active
-      - logger.log: "Mode: Sunrise"
-  - name: "Mode Sunset"
-    id: mode_sunset_active
-    icon: "mdi:weather-sunset-down"
-    on_turn_on:
-      - input_boolean.turn_off: mode_fixe_active
-      - input_boolean.turn_off: mode_sunrise_active
-      - logger.log: "Mode: Sunset"
+binary_sensor:
+  - platform: template
+    name: "État Relais"
+    id: etat_relais_lecture
+    device_class: power
+    lambda: "return id(controle_relais).state;"
 
-input_number:
-  - name: "Latitude"
-    id: latitude_config
-    min_value: -90
-    max_value: 90
-    step: 0.0001
-    initial_value: 50.4674
-    mode: box
-    icon: "mdi:map-marker"
-  - name: "Longitude"
-    id: longitude_config
-    min_value: -180
-    max_value: 180
-    step: 0.0001
-    initial_value: 4.8675
-    mode: box
-    icon: "mdi:map-marker"
-  - name: "Offset Sunrise (min)"
+select:
+  - platform: template
+    name: "Mode"
+    id: mode
+    icon: "mdi:calendar-clock"
+    options:
+      - "Horaire Fixe"
+      - "Sunrise"
+      - "Sunset"
+    initial_option: "Horaire Fixe"
+    optimistic: true
+    restore_value: true
+
+number:
+  - platform: template
+    name: "Offset Sunrise (min)"
     id: offset_sunrise
     min_value: -120
     max_value: 120
     step: 1
     initial_value: 0
     mode: slider
+    optimistic: true
+    restore_value: true
+    unit_of_measurement: "min"
     icon: "mdi:timer-sand"
-  - name: "Offset Sunset (min)"
+  - platform: template
+    name: "Offset Sunset (min)"
     id: offset_sunset
     min_value: -120
     max_value: 120
     step: 1
     initial_value: 0
     mode: slider
+    optimistic: true
+    restore_value: true
+    unit_of_measurement: "min"
     icon: "mdi:timer-sand"
 
-input_datetime:
-  - name: "Heure Fixe (ON)"
+datetime:
+  - platform: template
+    name: "Heure Fixe (ON)"
     id: heure_fixe_on
-    time:
-      use_date: false
-  - name: "Heure Fixe (OFF)"
+    type: time
+    initial_value: "08:00:00"
+    optimistic: true
+    restore_value: true
+  - platform: template
+    name: "Heure Fixe (OFF)"
     id: heure_fixe_off
-    time:
-      use_date: false
+    type: time
+    initial_value: "18:00:00"
+    optimistic: true
+    restore_value: true
 
-on_sunrise:
-  - then:
+script:
+  # Au démarrage : place le relais dans l'état attendu pour l'instant présent.
+  - id: appliquer_etat_initial
+    then:
       - if:
           condition:
-            lambda: |-
-              return id(mode_sunrise_active).state && 
-                     !id(mode_fixe_active).state && 
-                     !id(mode_sunset_active).state;
+            lambda: "return id(sntp_time).now().is_valid();"
           then:
-            - delay: !lambda |-
-                int offset_min = id(offset_sunrise).state;
-                if (offset_min < -120) offset_min = -120;
-                if (offset_min > 120) offset_min = 120;
-                return offset_min * 60000;
-            - switch.turn_off: controle_relais
-            - logger.log: 
-                format: "Mode Sunrise: Relais ÉTEINT (offset: %.0f min)"
-                args: [ 'id(offset_sunrise).state' ]
-
-on_sunset:
-  - then:
+            - lambda: |-
+                auto now = id(sntp_time).now();
+                std::string m = std::string(id(mode).current_option());
+                bool on = id(controle_relais).state;
+                if (m == "Horaire Fixe") {
+                  int cur = now.hour * 60 + now.minute;
+                  int a = id(heure_fixe_on).hour * 60 + id(heure_fixe_on).minute;
+                  int b = id(heure_fixe_off).hour * 60 + id(heure_fixe_off).minute;
+                  on = (a <= b) ? (cur >= a && cur < b) : (cur >= a || cur < b);
+                } else if (m == "Sunrise" || m == "Sunset") {
+                  // sunrise()/sunset() renvoient le PROCHAIN événement : on évalue
+                  // plusieurs jours et on garde le dernier événement passé (offset inclus).
+                  // Dernier événement = lever -> jour (OFF) ; = coucher -> nuit (ON).
+                  time_t t = now.timestamp;
+                  int off_sr = (int) id(offset_sunrise).state * 60;
+                  int off_ss = (int) id(offset_sunset).state * 60;
+                  time_t last_sr = 0, last_ss = 0;
+                  for (int k = -2; k <= 1; k++) {
+                    auto d = ESPTime::from_epoch_utc(t + k * 86400);
+                    auto sr = id(soleil).sunrise(d, -0.833);
+                    auto ss = id(soleil).sunset(d, -0.833);
+                    if (sr.has_value()) {
+                      time_t e = sr->timestamp + off_sr;
+                      if (e <= t && e > last_sr) last_sr = e;
+                    }
+                    if (ss.has_value()) {
+                      time_t e = ss->timestamp + off_ss;
+                      if (e <= t && e > last_ss) last_ss = e;
+                    }
+                  }
+                  if (last_sr != 0 || last_ss != 0) on = last_ss > last_sr;
+                }
+                if (on) id(controle_relais).turn_on(); else id(controle_relais).turn_off();
       - if:
           condition:
-            lambda: |-
-              return id(mode_sunset_active).state && 
-                     !id(mode_fixe_active).state && 
-                     !id(mode_sunrise_active).state;
+            not:
+              lambda: "return id(sntp_time).now().is_valid();"
           then:
-            - delay: !lambda |-
-                int offset_min = id(offset_sunset).state;
-                if (offset_min < -120) offset_min = -120;
-                if (offset_min > 120) offset_min = 120;
-                return offset_min * 60000;
-            - switch.turn_on: controle_relais
-            - logger.log: 
-                format: "Mode Sunset: Relais ALLUMÉ (offset: %.0f min)"
-                args: [ 'id(offset_sunset).state' ]
+            - delay: 10s
+            - script.execute: appliquer_etat_initial
+
+interval:
+  # Évalue chaque minute les événements (idempotent, indépendant des reboots).
+  - interval: 1min
+    then:
+      - lambda: |-
+          auto now = id(sntp_time).now();
+          if (!now.is_valid()) return;
+          std::string m = std::string(id(mode).current_option());
+          auto meme_minute = [&](time_t cible) {
+            return (now.timestamp / 60) == (cible / 60);
+          };
+          if (m == "Horaire Fixe") {
+            if (now.hour == id(heure_fixe_on).hour && now.minute == id(heure_fixe_on).minute) {
+              ESP_LOGI("solar", "Mode Fixe: Relais ALLUMÉ");
+              id(controle_relais).turn_on();
+            }
+            if (now.hour == id(heure_fixe_off).hour && now.minute == id(heure_fixe_off).minute) {
+              ESP_LOGI("solar", "Mode Fixe: Relais ÉTEINT");
+              id(controle_relais).turn_off();
+            }
+          } else if (m == "Sunrise" || m == "Sunset") {
+            // Cycle complet : OFF au lever + offset, ON au coucher + offset.
+            // sunrise()/sunset() donnent le prochain événement : on teste aussi les
+            // jours voisins pour ne pas rater un événement décalé par l'offset.
+            int off_sr = (int) id(offset_sunrise).state * 60;
+            int off_ss = (int) id(offset_sunset).state * 60;
+            for (int k = -1; k <= 1; k++) {
+              auto d = ESPTime::from_epoch_utc(now.timestamp + k * 86400);
+              auto sr = id(soleil).sunrise(d, -0.833);
+              auto ss = id(soleil).sunset(d, -0.833);
+              if (sr.has_value() && meme_minute(sr->timestamp + off_sr)) {
+                ESP_LOGI("solar", "Mode %s: Relais ÉTEINT (lever, offset %.0f min)", m.c_str(), id(offset_sunrise).state);
+                id(controle_relais).turn_off();
+              }
+              if (ss.has_value() && meme_minute(ss->timestamp + off_ss)) {
+                ESP_LOGI("solar", "Mode %s: Relais ALLUMÉ (coucher, offset %.0f min)", m.c_str(), id(offset_sunset).state);
+                id(controle_relais).turn_on();
+              }
+            }
+          }
