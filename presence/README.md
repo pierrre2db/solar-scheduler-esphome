@@ -39,7 +39,7 @@ Valable pour le nœud radar et la lampe Sonoff.
 3. Choisir le réseau et saisir le mot de passe : ils sont enregistrés en mémoire flash et utilisés en priorité aux démarrages suivants, même si `secrets.yaml` contient d'autres valeurs.
 4. Le module redémarre et se reconnecte ; le hotspot se ferme.
 
-Pas de hotspot forcé à la demande : ESPHome ne l'ouvre que si la connexion échoue. Pour forcer le cas, éteindre la box ou changer le SSID, ou reflasher via OTA/série.
+**Forcer le hotspot** : bouton **Hotspot WiFi (reset)** (nœud et lampe) ou, sur la lampe Sonoff, appui long de 8 s sur le bouton du module (appui court = bascule la lampe). Le module enregistre un réseau bidon (`hotspot-reset`), redémarre, ne le trouve pas et ouvre son hotspot après 60 s. Tant que tu n'as pas saisi ton vrai réseau dans le portail, il reste hors ligne (l'interrupteur mural de la lampe fonctionne quand même). Pour revenir aux valeurs de `secrets.yaml`, reflasher.
 
 ## Pilotage de la lampe
 Entité **Mode pilotage lampe** (réglable sans recompiler) :

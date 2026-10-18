@@ -6,7 +6,7 @@
 - `presence/` : nœud ESP32-C3 + radar LD2410 pilotant des lampes via Home Assistant, avec calibrage automatique par porte (pièce vide, pic + marge)
 - Pilotage direct des lampes en HTTP (API REST `web_server`), sans Home Assistant, avec sélecteur de mode
 - `presence/lamp_sonoff_basic_r4.yaml` : récepteur de lampe (Sonoff BASIC R4, interrupteur mural conservé)
-- Hotspot de secours (60 s) avec portail captif pour reconfigurer le WiFi sans reflasher (nœud radar et lampe)
+- Hotspot de secours (60 s) avec portail captif pour reconfigurer le WiFi sans reflasher (nœud radar et lampe), forçable par bouton ou appui long de 8 s sur le Sonoff
 - `presence/pico_w_timesync/` : serveur SNTP MicroPython pour Pico W (temps local des nœuds)
 
 ### Corrigé

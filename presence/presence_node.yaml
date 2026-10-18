@@ -433,6 +433,15 @@ button:
     on_press:
       then:
         - script.execute: calibrer
+  - platform: template
+    name: "Hotspot WiFi (reset)"
+    icon: "mdi:wifi-cog"
+    entity_category: config
+    on_press:
+      then:
+        - lambda: 'wifi::global_wifi_component->save_wifi_sta("hotspot-reset", "hotspot-reset");'
+        - delay: 1s
+        - lambda: 'App.safe_reboot();'
 
 script:
   - id: lampe_on

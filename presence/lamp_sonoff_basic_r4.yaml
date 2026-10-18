@@ -99,6 +99,27 @@ binary_sensor:
         input: true
         pullup: true
       inverted: true
+    on_click:
+      # appui court : bascule la lampe
+      - min_length: 50ms
+        max_length: 1s
+        then:
+          - light.toggle: lampe
+      # appui long (8 s) : efface le WiFi enregistré -> hotspot de secours après redémarrage
+      - min_length: 8s
+        max_length: 30s
+        then:
+          - lambda: 'wifi::global_wifi_component->save_wifi_sta("hotspot-reset", "hotspot-reset");'
+          - delay: 1s
+          - lambda: 'App.safe_reboot();'
+
+button:
+  - platform: template
+    name: "Hotspot WiFi (reset)"
+    icon: "mdi:wifi-cog"
+    entity_category: config
     on_press:
       then:
-        - light.toggle: lampe
+        - lambda: 'wifi::global_wifi_component->save_wifi_sta("hotspot-reset", "hotspot-reset");'
+        - delay: 1s
+        - lambda: 'App.safe_reboot();'
