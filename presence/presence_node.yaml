@@ -4,6 +4,9 @@ substitutions:
   friendly_name: Presence Salon
   # Lampe pilotée via Home Assistant (entity_id d'un light.* ou switch.*)
   lamp_entity: light.salon
+  # Lampe ESPHome pilotée en direct (API REST de web_server, sans HA) :
+  # http://<ip>/<domaine>/<id> avec domaine = light ou switch, id = id de l'entité sur la lampe
+  lamp_http_base: http://192.168.1.60/light/lampe
   # Serveur de temps local (Pico W, voir presence/pico_w_timesync) ; pool.ntp.org en secours
   ntp_server: 192.168.1.50
   # Position (le mode "Nuit seulement" utilise le soleil, comme solar_scheduler.yaml)
@@ -44,6 +47,11 @@ ota:
 api:
   encryption:
     key: !secret api_key
+
+# Pilotage direct des lampes ESPHome (POST sur web_server), sans passer par Home Assistant
+http_request:
+  timeout: 2s
+  watchdog_timeout: 5s
 
 time:
   - platform: sntp
@@ -353,6 +361,17 @@ number:
     icon: "mdi:plus-minus-variant"
 
 select:
+  - platform: template
+    id: mode_lampe
+    name: "Mode pilotage lampe"
+    icon: "mdi:lightbulb-network"
+    options:
+      - "Home Assistant"
+      - "HTTP direct"
+      - "Les deux"
+    initial_option: "HTTP direct"
+    optimistic: true
+    restore_value: true
   - platform: ld2410
     ld2410_id: radar
     distance_resolution:
@@ -424,20 +443,65 @@ script:
                   if (!id(nuit_seulement).state) return true;
                   return id(soleil).elevation() < -0.833;
           then:
-            - homeassistant.action:
-                action: homeassistant.turn_on
-                data:
-                  entity_id: ${lamp_entity}
+            - if:
+                condition:
+                  lambda: 'return id(mode_lampe).current_option() != "HTTP direct";'
+                then:
+                  - homeassistant.action:
+                      action: homeassistant.turn_on
+                      data:
+                        entity_id: ${lamp_entity}
+            - if:
+                condition:
+                  lambda: 'return id(mode_lampe).current_option() != "Home Assistant";'
+                then:
+                  - script.execute:
+                      id: lampe_http
+                      commande: "turn_on"
   - id: lampe_off
     then:
       - if:
           condition:
             switch.is_on: auto_lampe
           then:
-            - homeassistant.action:
-                action: homeassistant.turn_off
-                data:
-                  entity_id: ${lamp_entity}
+            - if:
+                condition:
+                  lambda: 'return id(mode_lampe).current_option() != "HTTP direct";'
+                then:
+                  - homeassistant.action:
+                      action: homeassistant.turn_off
+                      data:
+                        entity_id: ${lamp_entity}
+            - if:
+                condition:
+                  lambda: 'return id(mode_lampe).current_option() != "Home Assistant";'
+                then:
+                  - script.execute:
+                      id: lampe_http
+                      commande: "turn_off"
+
+  # POST direct sur l'API REST de web_server de la lampe ; 1 nouvel essai si échec.
+  - id: lampe_http
+    mode: queued
+    parameters:
+      commande: string
+    then:
+      - http_request.post:
+          url: !lambda 'return std::string("${lamp_http_base}/") + commande;'
+          request_headers:
+            Authorization: !secret lamp_http_basic
+          capture_response: false
+          on_error:
+            - logger.log:
+                level: WARN
+                format: "Lampe HTTP %s : échec, nouvel essai"
+                args: ['commande.c_str()']
+            - delay: 500ms
+            - http_request.post:
+                url: !lambda 'return std::string("${lamp_http_base}/") + commande;'
+                request_headers:
+                  Authorization: !secret lamp_http_basic
+                capture_response: false
 
   # Calibrage : pièce vide pendant "Calibrage durée". On relève le pic d'énergie de
   # chaque porte puis seuil = pic + marge (plafonné à 100).

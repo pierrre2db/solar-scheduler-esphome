@@ -1,10 +1,11 @@
 # Capteurs de présence radar → lampes (WiFi)
 
-Nœuds **ESP32-C3 + radar mmWave LD2410** qui détectent la présence et pilotent des lampes
-via Home Assistant. Un **Pico W** sert de serveur de temps local (SNTP) pour caler les nœuds.
+Nœuds **ESP32-C3 + radar mmWave LD2410** qui détectent la présence et pilotent des lampes,
+soit **en direct en HTTP** (sans Home Assistant), soit via Home Assistant. Un **Pico W** sert de serveur de temps local (SNTP) pour caler les nœuds.
 
 ```
- LD2410 ──UART──> ESP32-C3 ──WiFi/API──> Home Assistant ──> lampe (light.*)
+ LD2410 ──UART──> ESP32-C3 ──WiFi, HTTP POST──────────> lampe ESPHome (web_server)
+                     │                      └─ ou API ──> Home Assistant ──> lampe
                      ^
                      └── SNTP ── Pico W (serveur de temps local)
 ```
@@ -28,7 +29,35 @@ Le LD2410 est en 256000 baud ; UART0 reste au logger.
 1. `cp ../secrets.yaml.example ../secrets.yaml` puis remplir (clé API : `openssl rand -base64 32`).
 2. Pico W : flasher MicroPython, copier `main.py`, `ntp_packet.py` et `secrets.py` (depuis l'exemple). Réserver une IP fixe, la mettre dans `ntp_server`.
 3. `esphome run presence_node.yaml`.
-4. Dans Home Assistant : autoriser les actions de l'appareil (*Paramètres → Appareils → le nœud → Configurer → Autoriser l'appareil à effectuer des actions Home Assistant*), sinon la lampe ne s'allume pas.
+4. Seulement pour le mode `Home Assistant` : autoriser les actions de l'appareil (*Paramètres → Appareils → le nœud → Configurer → Autoriser l'appareil à effectuer des actions Home Assistant*), sinon la lampe ne s'allume pas.
+
+## Pilotage de la lampe
+Entité **Mode pilotage lampe** (réglable sans recompiler) :
+- `HTTP direct` (défaut) : le nœud envoie `POST http://<ip lampe>/light/<id>/turn_on|turn_off` à l'API REST de `web_server`. Fonctionne sans Home Assistant. 1 nouvel essai après 500 ms en cas d'échec.
+- `Home Assistant` : action `homeassistant.turn_on|turn_off` sur `lamp_entity`.
+- `Les deux` : les deux chemins, utile en transition.
+
+Côté nœud : `lamp_http_base` (ex. `http://192.168.1.60/light/lampe`) dans `substitutions`, et le secret `lamp_http_basic` (voir `../secrets.yaml.example`).
+
+Côté lampe (appareil ESPHome), il faut `web_server` et une entité dont l'`id` correspond à `lamp_http_base` :
+```yaml
+web_server:
+  port: 80
+  version: 3
+  auth:
+    username: admin
+    password: !secret web_password
+
+light:   # ou switch: pour un relais
+  - platform: binary
+    name: "Lampe"
+    id: lampe
+    output: sortie_lampe
+```
+- `lamp_http_basic` = `Basic ` + base64(`utilisateur:motdepasse`), identique à `web_server.auth` de la lampe : `printf 'Basic %s' "$(printf 'admin:MotDePasse' | base64)"`.
+- Pour un relais : mettre `switch` à la place de `light` dans `lamp_http_base`.
+- L'authentification HTTP Basic passe en clair sur le réseau local : à réserver à un réseau de confiance.
+- Une lampe par nœud ; pour en piloter plusieurs, dupliquer l'appel `http_request.post` dans le script `lampe_http`.
 
 ## Calibrage
 Objectif : que le radar ne voie ni les ventilateurs, ni les rideaux, ni les plantes, tout en restant sensible.
