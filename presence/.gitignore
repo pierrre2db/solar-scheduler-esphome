@@ -1,0 +1,14 @@
+# ESPHome
+secrets.yaml
+.esphome/
+*.bin
+
+# MicroPython (Pico W)
+secrets.py
+__pycache__/
+*.py[cod]
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/

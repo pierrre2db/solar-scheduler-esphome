@@ -11,9 +11,9 @@ substitutions:
   # Lampes supplémentaires (laisser "" si inutilisées) : jusqu'à 3 lampes par nœud
   lamp_http_base_2: ""
   lamp_http_base_3: ""
-  # Serveur de temps local (Pico W, voir presence/pico_w_timesync) ; pool.ntp.org en secours
+  # Serveur de temps local (Pico W, voir ../pico_w_timesync) ; pool.ntp.org en secours
   ntp_server: 192.168.1.50
-  # Position (le mode "Nuit seulement" utilise le soleil, comme solar_scheduler.yaml)
+  # Position (Namur, Belgique, par défaut) : le mode "Nuit seulement" utilise le calcul du soleil
   latitude: "50.4674"
   longitude: "4.8675"
   # UART du radar LD2410 (UART0 reste au logger)
@@ -64,6 +64,7 @@ web_server:
   auth:
     username: admin
     password: !secret web_password
+    type: digest
   sorting_groups:
     - id: grp_presence
       name: "Présence"

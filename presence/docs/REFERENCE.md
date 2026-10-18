@@ -12,10 +12,10 @@ Public visé : particulier bricoleur à l'aise avec ESPHome. Le raccordement 230
 
 | Élément | Référence | Rôle | Fichier |
 |---|---|---|---|
-| Nœud radar | ESP32-C3 (carte `esp32-c3-devkitm-1`) + radar LD2410 | Détecte la présence, calibre le radar, commande les lampes | `presence_node.yaml` |
-| Récepteur de lampe | Sonoff BASIC R4 (ESP32-C3) | Commute la lampe, garde l'interrupteur mural | `lamp_sonoff_basic_r4.yaml` |
+| Nœud radar | ESP32-C3 (carte `esp32-c3-devkitm-1`) + radar LD2410 | Détecte la présence, calibre le radar, commande les lampes | `esphome/presence_node.yaml` |
+| Récepteur de lampe | Sonoff BASIC R4 (ESP32-C3) | Commute la lampe, garde l'interrupteur mural | `esphome/lamp_sonoff_basic_r4.yaml` |
 | Serveur de temps | Raspberry Pi Pico W (MicroPython) | Sert l'heure en SNTP au réseau local | `pico_w_timesync/` |
-| Maquettes | Canvas de design | Aperçu des interfaces | `maquettes/` |
+| Maquettes | Canvas de design | Aperçu des interfaces | `docs/maquettes/` |
 
 Un nœud radar par pièce, de 1 à 3 lampes par nœud. Le Pico W est facultatif : les nœuds retombent sur `pool.ntp.org`.
 
@@ -40,7 +40,7 @@ LD2410 ──UART──> ESP32-C3 ──HTTP POST──> Sonoff BASIC R4 ──>
 | Liaison radar | UART 256000 baud, 8N1 ; TX `GPIO5`, RX `GPIO6` (substitutions `radar_tx_pin`, `radar_rx_pin`) |
 | Alimentation du radar | 5 V (4,5 à 6 V, à confirmer sur la fiche du fabricant) |
 | Portes du radar | 9 portes G0 à G8, 0,75 m chacune par défaut (*Résolution distance* réglable) |
-| Page web | `http://<ip>/`, version 3, identifiants `admin` et `web_password` |
+| Page web | `http://<ip>/`, version 3, identifiants `admin` et `web_password`, authentification digest |
 | Hotspot de secours | SSID `<friendly_name> AP`, ouvert après 60 s sans WiFi |
 | Fuseau et position | `Europe/Brussels` ; latitude `50.4674`, longitude `4.8675` (Namur), modifiables dans `substitutions` |
 
@@ -114,7 +114,7 @@ Sans WiFi pendant 60 s, ou après *Hotspot WiFi (reset)* (ou appui long de 8 s s
 
 ## 7. Secrets et sécurité
 
-Fichier `secrets.yaml` (non versionné), modèle `secrets.yaml.example` :
+Fichier `esphome/secrets.yaml` (non versionné), modèle `esphome/secrets.yaml.example` :
 
 | Clé | Usage |
 |---|---|
@@ -126,17 +126,17 @@ Fichier `secrets.yaml` (non versionné), modèle `secrets.yaml.example` :
 | `lamp_http_basic` | En-tête `Authorization` envoyé aux lampes, identique à `web_server.auth` de la lampe |
 
 Points d'attention :
-- L'authentification HTTP Basic transite en clair sur le réseau local : à réserver à un réseau de confiance.
+- Page web du nœud : authentification digest. Page web de la lampe : HTTP Basic imposé (`type: basic`), car le nœud envoie un en-tête `Authorization: Basic`. Il transite en clair sur le réseau local : à réserver à un réseau de confiance.
 - Toutes les lampes d'un nœud partagent le même `lamp_http_basic`.
 - Réserver des adresses IP fixes (DHCP) et utiliser des IP dans les URL des lampes, pas des noms `.local`.
 - Le montage 230 V se fait disjoncteur coupé, tension vérifiée absente, et idéalement par un électricien. Le module est monté au point lumineux ou dans la boîte de dérivation où phase et neutre sont permanents.
 
 ## 8. Mise en service
 
-1. `cp secrets.yaml.example secrets.yaml` et remplir.
-2. Flasher le Pico W (MicroPython) avec `pico_w_timesync/`, lui donner une IP fixe, la reporter dans `ntp_server`.
-3. Flasher le Sonoff BASIC R4 par adaptateur série 3,3 V (bouton maintenu à la mise sous tension) avec `lamp_sonoff_basic_r4.yaml`, puis OTA.
-4. Flasher le nœud radar avec `esphome run presence_node.yaml`.
+1. `cd esphome && cp secrets.yaml.example secrets.yaml` et remplir.
+2. Flasher le Pico W (MicroPython) avec `../pico_w_timesync/`, lui donner une IP fixe, la reporter dans `ntp_server`.
+3. Flasher le Sonoff BASIC R4 par adaptateur série 3,3 V (bouton maintenu à la mise sous tension) avec `esphome/lamp_sonoff_basic_r4.yaml`, puis OTA.
+4. Flasher le nœud radar avec `esphome run esphome/presence_node.yaml`.
 5. Saisir l'URL de chaque lampe dans la page web du nœud (`http://<ip lampe>/light/lampe`).
 6. Fixer le capteur à sa place définitive, vider la pièce, lancer *Calibrer (pièce vide)*, puis valider en bougeant et en restant assis immobile.
 
@@ -155,11 +155,13 @@ Points d'attention :
 
 | Élément | État |
 |---|---|
-| `presence_node.yaml`, `lamp_sonoff_basic_r4.yaml` | Validés par `esphome config` (ESPHome 2026.9.1) ; **jamais compilés ni flashés** (registre PlatformIO inaccessible depuis l'environnement de développement) |
-| Lambdas C++ (calibrage, reset WiFi) | Relues, non compilées |
-| Paquets SNTP du Pico W | Aller-retour testé sous CPython ; non testé sur Pico W |
+| `presence_node.yaml`, `lamp_sonoff_basic_r4.yaml` | Validés par `esphome config` (ESPHome 2026.9.1, `scripts/check.sh`) ; **jamais compilés ni flashés** dans l'environnement de développement (registre PlatformIO inaccessible). La CI GitHub les compile à chaque push |
+| Lambdas C++ (calibrage, reset WiFi) | Relues, non compilées localement ; couvertes par la compilation en CI |
+| Module SNTP du Pico W (`ntp_packet.py`) | 7 tests unitaires sous CPython (`tests/`) ; `main.py` non testé sur Pico W |
 | Câblage et brochages | Brochages du Sonoff BASIC R4 d'après la fiche ESPHome ; polarité et niveau de tension de l'entrée SW à vérifier sur le matériel |
 | Montage matériel complet | Non testé |
+
+Avertissements ESPHome connus : le mot de passe OTA est déconseillé au profit d'un chiffrement OTA basé sur la clé d'API (choix conservé pour la compatibilité des outils).
 
 ## 11. Limites connues
 
@@ -173,4 +175,4 @@ Points d'attention :
 
 - Fiche ESPHome du Sonoff BASIC R4 : https://devices.esphome.io/devices/sonoff-basic-r4-v1.0
 - Composants ESPHome utilisés : `ld2410`, `uart`, `web_server`, `http_request`, `sntp`, `sun`, `captive_portal`, `text`, `number`, `select`, `switch`, `button`
-- Historique : `CHANGELOG.md` · Interfaces : `maquettes/`
+- Historique : `../CHANGELOG.md` · Interfaces : `maquettes/` · Contrôles : `../scripts/check.sh` et `../.github/workflows/ci.yml`

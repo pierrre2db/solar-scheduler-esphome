@@ -54,6 +54,9 @@ web_server:
   auth:
     username: admin
     password: !secret web_password
+    # Le nœud radar envoie un en-tête Authorization: Basic (secret lamp_http_basic) :
+    # ne pas passer en digest sans adapter le nœud.
+    type: basic
 
 output:
   - platform: gpio
@@ -98,6 +101,8 @@ binary_sensor:
     name: "Bouton"
     pin:
       number: GPIO9
+      # GPIO9 est la broche du bouton du Sonoff (strapping ESP32-C3, usage prévu par le constructeur)
+      ignore_strapping_warning: true
       mode:
         input: true
         pullup: true
