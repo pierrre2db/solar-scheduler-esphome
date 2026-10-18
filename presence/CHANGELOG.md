@@ -9,6 +9,7 @@
 - Hotspot de secours (60 s) avec portail captif pour reconfigurer le WiFi sans reflasher (nœud radar et lampe), forçable par bouton ou appui long de 8 s sur le Sonoff
 - Page web de configuration du nœud radar (entités groupées) ; URL des lampes et entité Home Assistant modifiables sans recompiler
 - `pico_w_timesync/` : serveur SNTP MicroPython pour Pico W (temps local des nœuds)
+- `REFERENCE.md` : document produit de référence
 - `maquettes/` : sources des maquettes des interfaces
 
 ### Modifié

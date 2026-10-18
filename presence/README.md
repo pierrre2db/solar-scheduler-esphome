@@ -12,6 +12,7 @@ soit **en direct en HTTP** (sans Home Assistant), soit via Home Assistant. Un **
 
 ## Fichiers
 - `lamp_sonoff_basic_r4.yaml` : module relais Sonoff BASIC R4 qui reçoit les ordres HTTP du radar.
+- `REFERENCE.md` : document produit de référence (composition, caractéristiques, entités, comportement, sécurité, statut de validation).
 - `presence_node.yaml` : un nœud par pièce (copier, changer `name`, `friendly_name`, `lamp_entity`).
 - `pico_w_timesync/` : serveur SNTP MicroPython (`main.py`, `ntp_packet.py`, `secrets.py.example`).
 - `secrets.yaml.example` : secrets du projet (copier vers `secrets.yaml` dans ce dossier).
