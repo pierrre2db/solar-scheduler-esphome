@@ -5,6 +5,7 @@
 ### Ajouté
 - `presence/` : nœud ESP32-C3 + radar LD2410 pilotant des lampes via Home Assistant, avec calibrage automatique par porte (pièce vide, pic + marge)
 - Pilotage direct des lampes en HTTP (API REST `web_server`), sans Home Assistant, avec sélecteur de mode
+- `presence/lamp_sonoff_basic_r4.yaml` : récepteur de lampe (Sonoff BASIC R4, interrupteur mural conservé)
 - `presence/pico_w_timesync/` : serveur SNTP MicroPython pour Pico W (temps local des nœuds)
 
 ### Corrigé

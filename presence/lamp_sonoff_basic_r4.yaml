@@ -1,0 +1,102 @@
+substitutions:
+  # Un fichier par lampe (copier, changer name/friendly_name)
+  name: lampe-salon
+  friendly_name: Lampe Salon
+
+# Sonoff BASIC R4 (ESP32-C3) monté au point lumineux / boîte de dérivation (L + N permanents),
+# interrupteur mural câblé sur l'entrée SW. Le nœud radar pilote cette lampe en HTTP :
+#   lamp_http_base: http://<ip de cette lampe>/light/lampe
+# Brochage : relais GPIO4, entrée SW GPIO5, LED GPIO6, bouton GPIO9
+# (https://devices.esphome.io/devices/sonoff-basic-r4-v1.0)
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+  level: INFO
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+  # Latence minimale côté récepteur HTTP
+  power_save_mode: none
+  ap:
+    ssid: "${friendly_name} AP"
+    password: !secret ap_password
+
+captive_portal:
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+api:
+  encryption:
+    key: !secret api_key
+
+# API REST utilisée par le nœud radar : POST /light/lampe/turn_on|turn_off
+# Identifiants = secret lamp_http_basic du nœud radar.
+web_server:
+  port: 80
+  version: 3
+  auth:
+    username: admin
+    password: !secret web_password
+
+output:
+  - platform: gpio
+    id: sortie_relais
+    pin: GPIO4
+
+light:
+  - platform: binary
+    name: "Lampe"
+    id: lampe
+    output: sortie_relais
+    restore_mode: RESTORE_DEFAULT_OFF
+
+status_led:
+  pin:
+    number: GPIO6
+    inverted: true
+
+binary_sensor:
+  # Interrupteur mural, "magic switch" : tout changement d'état inverse la lampe,
+  # donc interrupteur simple ou va-et-vient, sans conflit avec le radar.
+  - platform: gpio
+    id: interrupteur_mural
+    name: "Interrupteur mural"
+    pin:
+      number: GPIO5
+      mode:
+        input: true
+        pullup: true
+    filters:
+      - delayed_on_off: 50ms
+    on_state:
+      then:
+        # ignore l'état initial publié au démarrage
+        - if:
+            condition:
+              lambda: "return millis() > 5000;"
+            then:
+              - light.toggle: lampe
+  # Bouton en façade du module
+  - platform: gpio
+    name: "Bouton"
+    pin:
+      number: GPIO9
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    on_press:
+      then:
+        - light.toggle: lampe

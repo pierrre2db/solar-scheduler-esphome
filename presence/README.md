@@ -11,6 +11,7 @@ soit **en direct en HTTP** (sans Home Assistant), soit via Home Assistant. Un **
 ```
 
 ## Fichiers
+- `lamp_sonoff_basic_r4.yaml` : module relais Sonoff BASIC R4 qui reçoit les ordres HTTP du radar.
 - `presence_node.yaml` : un nœud par pièce (copier, changer `name`, `friendly_name`, `lamp_entity`).
 - `pico_w_timesync/` : serveur SNTP MicroPython (`main.py`, `ntp_packet.py`, `secrets.py.example`).
 - Les secrets WiFi/API/OTA sont ceux de `../secrets.yaml.example`.
@@ -38,6 +39,8 @@ Entité **Mode pilotage lampe** (réglable sans recompiler) :
 - `Les deux` : les deux chemins, utile en transition.
 
 Côté nœud : `lamp_http_base` (ex. `http://192.168.1.60/light/lampe`) dans `substitutions`, et le secret `lamp_http_basic` (voir `../secrets.yaml.example`).
+
+**Lampe sur interrupteur sans neutre : Sonoff BASIC R4** (ESP32-C3), monté au point lumineux ou dans la boîte de dérivation où L et N sont permanents, interrupteur mural sur l'entrée SW. Config prête : `lamp_sonoff_basic_r4.yaml` (relais GPIO4, entrée SW GPIO5, bouton GPIO9, `web_server` avec auth, entité `lampe`). Le mode « magic switch » inverse la lampe à chaque changement de l'interrupteur (simple ou va-et-vient) : pas de conflit avec le radar. Le premier flash se fait par adaptateur série 3,3 V (bouton maintenu à la mise sous tension), puis OTA. Avec ce fichier : `lamp_http_base: http://<ip lampe>/light/lampe`.
 
 Côté lampe (appareil ESPHome), il faut `web_server` et une entité dont l'`id` correspond à `lamp_http_base` :
 ```yaml
