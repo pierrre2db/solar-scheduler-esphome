@@ -2,7 +2,7 @@ substitutions:
   # Identité du nœud (un fichier par pièce : copier et changer name/friendly_name)
   name: presence-salon
   friendly_name: Presence Salon
-  # Lampe pilotée via Home Assistant (entity_id d'un light.* ou switch.*)
+  # Lampe pilotée via Home Assistant (entity_id d'un light.* ou switch.*) ; valeur initiale, modifiable dans la page web
   lamp_entity: light.salon
   # Lampe ESPHome pilotée en direct (API REST de web_server, sans HA) :
   # http://<ip>/<domaine>/<id> avec domaine = light ou switch, id = id de l'entité sur la lampe
@@ -547,6 +547,21 @@ text:
     web_server:
       sorting_group_id: grp_lampes
 
+  # Entité(s) Home Assistant pour le mode "Home Assistant" (plusieurs : light.a, light.b)
+  - platform: template
+    id: ha_entity
+    name: "Lampe entité Home Assistant"
+    mode: text
+    min_length: 0
+    max_length: 120
+    initial_value: "${lamp_entity}"
+    optimistic: true
+    restore_value: true
+    entity_category: config
+    icon: "mdi:home-assistant"
+    web_server:
+      sorting_group_id: grp_lampes
+
 select:
   - platform: template
     id: mode_lampe
@@ -684,12 +699,12 @@ script:
                         - homeassistant.action:
                             action: homeassistant.turn_on
                             data:
-                              entity_id: ${lamp_entity}
+                              entity_id: !lambda 'return id(ha_entity).state;'
                       else:
                         - homeassistant.action:
                             action: homeassistant.turn_off
                             data:
-                              entity_id: ${lamp_entity}
+                              entity_id: !lambda 'return id(ha_entity).state;'
             - if:
                 condition:
                   lambda: 'return id(mode_lampe).current_option() != "Home Assistant";'

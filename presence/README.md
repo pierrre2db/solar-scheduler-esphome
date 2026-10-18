@@ -52,12 +52,14 @@ Le système tourne sans lui (mode `HTTP direct`, défaut) :
 ## Page web de configuration
 Le nœud radar sert une page à `http://<ip du nœud>/` (identifiants `admin` / `web_password`), avec les entités regroupées :
 - **Présence** : distances, énergies, cibles, état *Présence*.
-- **Lampes** : *Pilotage lampe*, *Mode pilotage lampe*, *Nuit seulement*, *Délai de maintien*, et les trois champs **Lampe N URL**.
+- **Lampes** : *Pilotage lampe*, *Mode pilotage lampe*, *Nuit seulement*, *Délai de maintien*, les trois champs **Lampe N URL** et **Lampe entité Home Assistant**.
 - **Calibrage** : durée, marge, bouton *Calibrer*, statut, mode ingénierie.
 - **Seuils par porte** / **Énergies par porte** : réglage fin G0–G8.
 - **Système** : signal WiFi, firmware radar, resets, *Hotspot WiFi (reset)*.
 
-Les URL des lampes se modifient dans cette page, sans recompiler : les substitutions `lamp_http_base*` ne servent que de valeur initiale au premier démarrage, ensuite la valeur enregistrée prime.
+Les URL des lampes et l'entité Home Assistant se modifient dans cette page, sans recompiler : les substitutions `lamp_http_base*` et `lamp_entity` ne servent que de valeur initiale au premier démarrage, ensuite la valeur enregistrée prime.
+
+Reste à recompiler (OTA) : `name`, `friendly_name`, `ntp_server`, position du soleil. Le serveur de temps n'est pas modifiable à chaud : le composant SNTP d'ESPHome fixe ses serveurs à la compilation, et le changer à l'exécution passerait par l'API ESP-IDF interne, que je n'ai pas pu compiler ni tester ici. `pool.ntp.org` reste de toute façon en secours.
 
 ## Pilotage de la lampe
 Entité **Mode pilotage lampe** (réglable sans recompiler) :
