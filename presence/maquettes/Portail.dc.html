@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Hotspot de secours, portail captif</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+input,button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #f4f6f8; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: #1b2733; font-size: 16px; display: flex; flex-direction: column">
+
+<div style="background: #14212d; color: #f2f5f8; padding: 48px 24px 24px 24px; display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #9fb0c0">Connecté à « Lampe Salon AP »</div>
+<div style="font-size: 24px; font-weight: 650">Configuration WiFi</div>
+</div>
+
+<div style="padding: 24px; display: flex; flex-direction: column; gap: 20px; flex: 1; min-height: 0">
+
+<div style="font-size: 15px; line-height: 1.5; color: #3d4b58">Choisis ton réseau et saisis son mot de passe. Le module se connecte puis redémarre.</div>
+
+<div style="background: #fff; border: 1px solid #d3dae1; border-radius: 10px; overflow: hidden">
+<div style="padding: 12px 16px; background: #eef2f5; font-size: 13px; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; color: #5d6b78">Réseaux détectés</div>
+<sc-for list="{{reseaux}}" as="n" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px; min-height: 52px; border-top: 1px solid #e3e8ed; background: {{n.bg}}">
+<div style="display: flex; align-items: center; gap: 10px; min-width: 0">
+<span style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid {{n.ring}}; background: {{n.dot}}; box-sizing: border-box; flex: none"></span>
+<span style="font-weight: {{n.weight}}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{n.ssid}}</span>
+</div>
+<span style="font-size: 13px; color: #5d6b78; font-variant-numeric: tabular-nums; flex: none">{{n.rssi}} dBm</span>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="ssid" style="font-size: 14px; font-weight: 650">Réseau</label>
+<input id="ssid" type="text" value="MaBox-5G" style="height: 48px; box-sizing: border-box; border: 1px solid #b9c4cf; border-radius: 8px; padding: 0 14px; font-size: 16px; background: #fff; color: #1b2733">
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<label for="mdp" style="font-size: 14px; font-weight: 650">Mot de passe</label>
+<input id="mdp" type="password" value="motdepasse" style="height: 48px; box-sizing: border-box; border: 1px solid #b9c4cf; border-radius: 8px; padding: 0 14px; font-size: 16px; background: #fff; color: #1b2733">
+</div>
+
+<button type="button" style="height: 52px; border: 0; border-radius: 8px; background: #1d6fe0; color: #fff; font-size: 17px; font-weight: 650">Enregistrer et redémarrer</button>
+
+<div style="font-size: 13px; line-height: 1.5; color: #5d6b78">Le réseau saisi ici est mémorisé dans le module et prime sur celui du fichier de configuration.</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const net = (ssid, rssi, picked) => ({
+      ssid: ssid, rssi: rssi,
+      bg: picked ? '#eaf2fd' : '#ffffff',
+      ring: picked ? '#1d6fe0' : '#9aa7b4',
+      dot: picked ? '#1d6fe0' : '#ffffff',
+      weight: picked ? '650' : '400'
+    });
+    return {
+      reseaux: [
+        net('MaBox-5G', '-52', true),
+        net('MaBox-2G', '-60', false),
+        net('Voisin_Wifi', '-81', false),
+        net('Invité', '-67', false)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

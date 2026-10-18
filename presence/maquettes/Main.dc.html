@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Nœud radar, page web</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+input,select,button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1040px; height: 2400px; box-sizing: border-box; background: #e9edf1; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: #1b2733; font-size: 15px; display: flex; flex-direction: column">
+
+<div style="background: #14212d; color: #f2f5f8; padding: 28px 40px; display: flex; align-items: center; justify-content: space-between; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 26px; font-weight: 650">Presence Salon</div>
+<div style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; color: #9fb0c0">presence-salon · 192.168.1.42 · ESPHome 2026.9.1</div>
+</div>
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="background: #1f8a4c; color: #fff; font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: 999px">En ligne</span>
+<a href="#" style="color: #cfe0f0; font-size: 14px">Entités</a>
+<a href="#" style="color: #cfe0f0; font-size: 14px">Journal</a>
+</div>
+</div>
+
+<div style="padding: 32px 40px 0 40px; display: flex; gap: 24px; align-items: flex-start">
+
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 24px">
+<sc-for list="{{colLeft}}" as="grp" hint-placeholder-count="2">
+<div style="background: #fff; border: 1px solid #d3dae1; border-radius: 10px; overflow: hidden">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: #f4f7f9">
+<div style="font-weight: 650; font-size: 16px">{{grp.title}}</div>
+<div style="font-size: 13px; color: #5d6b78">{{grp.count}}</div>
+</div>
+<sc-for list="{{grp.rows}}" as="r" hint-placeholder-count="6">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 9px 20px; border-top: 1px solid #e3e8ed; min-height: 46px; box-sizing: border-box">
+<div style="font-size: 15px">{{r.label}}</div>
+<sc-if value="{{r.isPill}}" hint-placeholder-val="{{ true }}">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.04em; padding: 4px 10px; border-radius: 6px; background: {{r.pillBg}}; color: {{r.pillFg}}">{{r.pillText}}</span>
+</sc-if>
+<sc-if value="{{r.isSensor}}" hint-placeholder-val="{{ false }}">
+<div style="font-variant-numeric: tabular-nums"><span style="font-weight: 650">{{r.value}}</span> <span style="color: #5d6b78">{{r.unit}}</span></div>
+</sc-if>
+<sc-if value="{{r.isToggle}}" hint-placeholder-val="{{ false }}">
+<button type="button" role="switch" aria-checked="{{r.onStr}}" aria-label="{{r.label}}" style="width: 46px; height: 26px; border-radius: 13px; border: 0; padding: 0; position: relative; background: {{r.trackBg}}"><span style="position: absolute; top: 3px; left: {{r.knobLeft}}; width: 20px; height: 20px; border-radius: 50%; background: #fff"></span></button>
+</sc-if>
+<sc-if value="{{r.isNumber}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; align-items: center; gap: 8px"><input type="text" aria-label="{{r.label}}" value="{{r.value}}" style="width: 72px; height: 34px; box-sizing: border-box; border: 1px solid #b9c4cf; border-radius: 6px; padding: 0 10px; text-align: right; font-size: 15px; background: #fff; color: #1b2733"><span style="color: #5d6b78; width: 28px">{{r.unit}}</span></div>
+</sc-if>
+<sc-if value="{{r.isSelect}}" hint-placeholder-val="{{ false }}">
+<select aria-label="{{r.label}}" style="height: 34px; border: 1px solid #b9c4cf; border-radius: 6px; padding: 0 10px; font-size: 15px; background: #fff; color: #1b2733; min-width: 160px"><option>{{r.value}}</option></select>
+</sc-if>
+<sc-if value="{{r.isText}}" hint-placeholder-val="{{ false }}">
+<input type="text" aria-label="{{r.label}}" value="{{r.value}}" placeholder="{{r.placeholder}}" style="flex: 1 1 240px; min-width: 0; max-width: 100%; height: 34px; box-sizing: border-box; border: 1px solid #b9c4cf; border-radius: 6px; padding: 0 10px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; background: #fff; color: #1b2733">
+</sc-if>
+<sc-if value="{{r.isButton}}" hint-placeholder-val="{{ false }}">
+<button type="button" style="height: 34px; padding: 0 16px; border: 1px solid #1d5fb4; background: {{r.btnBg}}; color: {{r.btnFg}}; border-radius: 6px; font-size: 14px; font-weight: 600">Appuyer</button>
+</sc-if>
+<sc-if value="{{r.isStatus}}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1 1 100%; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; color: #34424f; background: #f4f7f9; border-radius: 6px; padding: 8px 10px">{{r.value}}</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 24px">
+<sc-for list="{{colRight}}" as="grp" hint-placeholder-count="2">
+<div style="background: #fff; border: 1px solid #d3dae1; border-radius: 10px; overflow: hidden">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: #f4f7f9">
+<div style="font-weight: 650; font-size: 16px">{{grp.title}}</div>
+<div style="font-size: 13px; color: #5d6b78">{{grp.count}}</div>
+</div>
+<sc-for list="{{grp.rows}}" as="r" hint-placeholder-count="6">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 9px 20px; border-top: 1px solid #e3e8ed; min-height: 46px; box-sizing: border-box">
+<div style="font-size: 15px">{{r.label}}</div>
+<sc-if value="{{r.isPill}}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.04em; padding: 4px 10px; border-radius: 6px; background: {{r.pillBg}}; color: {{r.pillFg}}">{{r.pillText}}</span>
+</sc-if>
+<sc-if value="{{r.isSensor}}" hint-placeholder-val="{{ false }}">
+<div style="font-variant-numeric: tabular-nums"><span style="font-weight: 650">{{r.value}}</span> <span style="color: #5d6b78">{{r.unit}}</span></div>
+</sc-if>
+<sc-if value="{{r.isToggle}}" hint-placeholder-val="{{ true }}">
+<button type="button" role="switch" aria-checked="{{r.onStr}}" aria-label="{{r.label}}" style="width: 46px; height: 26px; border-radius: 13px; border: 0; padding: 0; position: relative; background: {{r.trackBg}}"><span style="position: absolute; top: 3px; left: {{r.knobLeft}}; width: 20px; height: 20px; border-radius: 50%; background: #fff"></span></button>
+</sc-if>
+<sc-if value="{{r.isNumber}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; align-items: center; gap: 8px"><input type="text" aria-label="{{r.label}}" value="{{r.value}}" style="width: 72px; height: 34px; box-sizing: border-box; border: 1px solid #b9c4cf; border-radius: 6px; padding: 0 10px; text-align: right; font-size: 15px; background: #fff; color: #1b2733"><span style="color: #5d6b78; width: 28px">{{r.unit}}</span></div>
+</sc-if>
+<sc-if value="{{r.isSelect}}" hint-placeholder-val="{{ false }}">
+<select aria-label="{{r.label}}" style="height: 34px; border: 1px solid #b9c4cf; border-radius: 6px; padding: 0 10px; font-size: 15px; background: #fff; color: #1b2733; min-width: 160px"><option>{{r.value}}</option></select>
+</sc-if>
+<sc-if value="{{r.isText}}" hint-placeholder-val="{{ false }}">
+<input type="text" aria-label="{{r.label}}" value="{{r.value}}" placeholder="{{r.placeholder}}" style="flex: 1 1 240px; min-width: 0; max-width: 100%; height: 34px; box-sizing: border-box; border: 1px solid #b9c4cf; border-radius: 6px; padding: 0 10px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; background: #fff; color: #1b2733">
+</sc-if>
+<sc-if value="{{r.isButton}}" hint-placeholder-val="{{ false }}">
+<button type="button" style="height: 34px; padding: 0 16px; border: 1px solid #1d5fb4; background: {{r.btnBg}}; color: {{r.btnFg}}; border-radius: 6px; font-size: 14px; font-weight: 600">Appuyer</button>
+</sc-if>
+<sc-if value="{{r.isStatus}}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1 1 100%; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; color: #34424f; background: #f4f7f9; border-radius: 6px; padding: 8px 10px">{{r.value}}</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+
+</div>
+
+<div style="padding: 24px 40px 0 40px">
+<div style="background: #fff; border: 1px solid #d3dae1; border-radius: 10px; overflow: hidden">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: #f4f7f9">
+<div style="font-weight: 650; font-size: 16px">Seuils par porte</div>
+<div style="font-size: 13px; color: #5d6b78">22 entités</div>
+</div>
+<sc-for list="{{seuilsRows}}" as="r" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 9px 20px; border-top: 1px solid #e3e8ed; min-height: 46px; box-sizing: border-box">
+<div style="font-size: 15px">{{r.label}}</div>
+<sc-if value="{{r.isSelect}}" hint-placeholder-val="{{ false }}">
+<select aria-label="{{r.label}}" style="height: 34px; border: 1px solid #b9c4cf; border-radius: 6px; padding: 0 10px; font-size: 15px; background: #fff; color: #1b2733; min-width: 160px"><option>{{r.value}}</option></select>
+</sc-if>
+<sc-if value="{{r.isNumber}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; align-items: center; gap: 8px"><input type="text" aria-label="{{r.label}}" value="{{r.value}}" style="width: 72px; height: 34px; box-sizing: border-box; border: 1px solid #b9c4cf; border-radius: 6px; padding: 0 10px; text-align: right; font-size: 15px; background: #fff; color: #1b2733"><span style="color: #5d6b78; width: 28px">{{r.unit}}</span></div>
+</sc-if>
+</div>
+</sc-for>
+<div style="display: grid; grid-template-columns: 80px 150px repeat(2, minmax(0, 1fr)); gap: 0 16px; padding: 10px 20px; border-top: 1px solid #e3e8ed; background: #f9fbfc; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #5d6b78">
+<div>Porte</div><div>Distance</div><div>Seuil mouvement</div><div>Seuil statique</div>
+</div>
+<sc-for list="{{gates}}" as="g" hint-placeholder-count="9">
+<div style="display: grid; grid-template-columns: 80px 150px repeat(2, minmax(0, 1fr)); gap: 0 16px; align-items: center; padding: 6px 20px; border-top: 1px solid #e3e8ed; min-height: 44px; box-sizing: border-box">
+<div style="font-weight: 650">{{g.name}}</div>
+<div style="color: #5d6b78; font-variant-numeric: tabular-nums">{{g.range}}</div>
+<div><input type="text" aria-label="{{g.name}} seuil mouvement" value="{{g.moveT}}" style="width: 72px; height: 32px; box-sizing: border-box; border: 1px solid #b9c4cf; border-radius: 6px; padding: 0 10px; text-align: right; font-size: 15px; background: #fff; color: #1b2733"></div>
+<div><input type="text" aria-label="{{g.name}} seuil statique" value="{{g.stillT}}" style="width: 72px; height: 32px; box-sizing: border-box; border: 1px solid #b9c4cf; border-radius: 6px; padding: 0 10px; text-align: right; font-size: 15px; background: #fff; color: #1b2733"></div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="padding: 24px 40px 0 40px">
+<div style="background: #fff; border: 1px solid #d3dae1; border-radius: 10px; overflow: hidden">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: #f4f7f9">
+<div style="font-weight: 650; font-size: 16px">Énergies par porte</div>
+<div style="font-size: 13px; color: #5d6b78">18 capteurs, mode ingénierie requis</div>
+</div>
+<div style="display: grid; grid-template-columns: 80px repeat(2, minmax(0, 1fr)); gap: 0 24px; padding: 10px 20px; background: #f9fbfc; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #5d6b78">
+<div>Porte</div><div>Énergie mouvement</div><div>Énergie statique</div>
+</div>
+<sc-for list="{{gates}}" as="g" hint-placeholder-count="9">
+<div style="display: grid; grid-template-columns: 80px repeat(2, minmax(0, 1fr)); gap: 0 24px; align-items: center; padding: 6px 20px; border-top: 1px solid #e3e8ed; min-height: 40px; box-sizing: border-box">
+<div style="font-weight: 650">{{g.name}}</div>
+<div style="display: flex; align-items: center; gap: 10px"><div style="flex: 1; min-width: 0; height: 10px; border-radius: 5px; background: #e3e8ed; overflow: hidden"><div style="height: 10px; width: {{g.moveW}}; background: #1d6fe0"></div></div><span style="width: 36px; text-align: right; font-variant-numeric: tabular-nums">{{g.moveE}} %</span></div>
+<div style="display: flex; align-items: center; gap: 10px"><div style="flex: 1; min-width: 0; height: 10px; border-radius: 5px; background: #e3e8ed; overflow: hidden"><div style="height: 10px; width: {{g.stillW}}; background: #0f8a7a"></div></div><span style="width: 36px; text-align: right; font-variant-numeric: tabular-nums">{{g.stillE}} %</span></div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="padding: 20px 40px 28px 40px; font-size: 13px; color: #5d6b78">Maquette indicative de la page web ESPHome (web_server v3). Valeurs d'exemple.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1040,"height":2400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const row = (label, kind, extra) => {
+      const r = Object.assign({ label: label, kind: kind }, extra || {});
+      r.isPill = kind === 'pill';
+      r.isSensor = kind === 'sensor';
+      r.isToggle = kind === 'toggle';
+      r.isNumber = kind === 'number';
+      r.isSelect = kind === 'select';
+      r.isText = kind === 'text';
+      r.isButton = kind === 'button';
+      r.isStatus = kind === 'status';
+      r.pillBg = r.on ? '#dff3e6' : '#e6eaee';
+      r.pillFg = r.on ? '#14693a' : '#4c5a67';
+      r.pillText = r.on ? 'ON' : 'OFF';
+      r.trackBg = r.on ? '#1d6fe0' : '#9aa7b4';
+      r.knobLeft = r.on ? '23px' : '3px';
+      r.onStr = r.on ? 'true' : 'false';
+      r.btnBg = r.primary ? '#1d6fe0' : '#fff';
+      r.btnFg = r.primary ? '#fff' : '#1d5fb4';
+      return r;
+    };
+    const fr = (n) => n.toFixed(2).replace('.', ',');
+    const moveE = [38, 62, 41, 9, 4, 2, 0, 0, 0];
+    const stillE = [12, 18, 10, 6, 3, 0, 0, 0, 0];
+    const moveT = [14, 12, 10, 10, 10, 10, 10, 10, 10];
+    const stillT = [10, 10, 10, 10, 10, 10, 10, 10, 10];
+    const gates = moveE.map((m, i) => ({
+      name: 'G' + i,
+      range: fr(i * 0.75) + ' – ' + fr((i + 1) * 0.75) + ' m',
+      moveE: m, stillE: stillE[i],
+      moveW: m + '%', stillW: stillE[i] + '%',
+      moveT: moveT[i], stillT: stillT[i]
+    }));
+    return {
+      gates: gates,
+      colLeft: [
+        { title: 'Présence', count: '9 entités', rows: [
+          row('Présence', 'pill', { on: true }),
+          row('Cible radar', 'pill', { on: true }),
+          row('Cible en mouvement', 'pill', { on: true }),
+          row('Cible statique', 'pill', { on: false }),
+          row('Distance mouvement', 'sensor', { value: '120', unit: 'cm' }),
+          row('Distance statique', 'sensor', { value: '0', unit: 'cm' }),
+          row('Distance détection', 'sensor', { value: '120', unit: 'cm' }),
+          row('Énergie mouvement', 'sensor', { value: '62', unit: '%' }),
+          row('Énergie statique', 'sensor', { value: '18', unit: '%' })
+        ] },
+        { title: 'Calibrage', count: '5 entités', rows: [
+          row('Calibrer (pièce vide)', 'button', { primary: true }),
+          row('Calibrage durée (s)', 'number', { value: '60', unit: 's' }),
+          row('Calibrage marge', 'number', { value: '10', unit: '' }),
+          row('Mode ingénierie', 'toggle', { on: false }),
+          row('Calibrage statut', 'status', { value: 'OK (marge 10) pics mvt: 4 2 0 0 0 0 0 0 0' })
+        ] }
+      ],
+      colRight: [
+        { title: 'Lampes', count: '8 entités', rows: [
+          row('Pilotage lampe', 'toggle', { on: true }),
+          row('Mode pilotage lampe', 'select', { value: 'HTTP direct' }),
+          row('Nuit seulement', 'toggle', { on: true }),
+          row('Délai de maintien (s)', 'number', { value: '120', unit: 's' }),
+          row('Lampe 1 URL', 'text', { value: 'http://192.168.1.60/light/lampe', placeholder: 'inutilisée' }),
+          row('Lampe 2 URL', 'text', { value: 'http://192.168.1.61/light/lampe', placeholder: 'inutilisée' }),
+          row('Lampe 3 URL', 'text', { value: '', placeholder: 'inutilisée' }),
+          row('Lampe entité Home Assistant', 'text', { value: 'light.salon', placeholder: 'light.exemple' })
+        ] },
+        { title: 'Système', count: '8 entités', rows: [
+          row('Signal WiFi', 'sensor', { value: '-58', unit: 'dBm' }),
+          row('Firmware radar', 'sensor', { value: '2.44.24082217', unit: '' }),
+          row('Baud rate radar', 'select', { value: '256000' }),
+          row('Bluetooth radar', 'toggle', { on: false }),
+          row('Radar relire paramètres', 'button', { primary: false }),
+          row('Radar redémarrer', 'button', { primary: false }),
+          row('Radar reset usine', 'button', { primary: false }),
+          row('Hotspot WiFi (reset)', 'button', { primary: false })
+        ] }
+      ],
+      seuilsRows: [
+        row('Timeout radar', 'number', { value: '5', unit: 's' }),
+        row('Porte max mouvement', 'number', { value: '8', unit: '' }),
+        row('Porte max statique', 'number', { value: '8', unit: '' }),
+        row('Résolution distance', 'select', { value: '0.75m' })
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

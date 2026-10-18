@@ -14,7 +14,9 @@ soit **en direct en HTTP** (sans Home Assistant), soit via Home Assistant. Un **
 - `lamp_sonoff_basic_r4.yaml` : module relais Sonoff BASIC R4 qui reçoit les ordres HTTP du radar.
 - `presence_node.yaml` : un nœud par pièce (copier, changer `name`, `friendly_name`, `lamp_entity`).
 - `pico_w_timesync/` : serveur SNTP MicroPython (`main.py`, `ntp_packet.py`, `secrets.py.example`).
-- Les secrets WiFi/API/OTA sont ceux de `../secrets.yaml.example`.
+- `secrets.yaml.example` : secrets du projet (copier vers `secrets.yaml` dans ce dossier).
+- `maquettes/` : sources des maquettes des interfaces.
+- `CHANGELOG.md` : historique propre à ce projet.
 
 ## Câblage LD2410 → ESP32-C3
 | LD2410 | ESP32-C3 |
@@ -27,7 +29,7 @@ soit **en direct en HTTP** (sans Home Assistant), soit via Home Assistant. Un **
 Le LD2410 est en 256000 baud ; UART0 reste au logger.
 
 ## Mise en route
-1. `cp ../secrets.yaml.example ../secrets.yaml` puis remplir (clé API : `openssl rand -base64 32`).
+1. `cd presence && cp secrets.yaml.example secrets.yaml` puis remplir (clé API : `openssl rand -base64 32`).
 2. Pico W : flasher MicroPython, copier `main.py`, `ntp_packet.py` et `secrets.py` (depuis l'exemple). Réserver une IP fixe, la mettre dans `ntp_server`.
 3. `esphome run presence_node.yaml`.
 4. Seulement pour le mode `Home Assistant` : autoriser les actions de l'appareil (*Paramètres → Appareils → le nœud → Configurer → Autoriser l'appareil à effectuer des actions Home Assistant*), sinon la lampe ne s'allume pas.
@@ -67,7 +69,7 @@ Entité **Mode pilotage lampe** (réglable sans recompiler) :
 - `Home Assistant` : action `homeassistant.turn_on|turn_off` sur `lamp_entity`.
 - `Les deux` : les deux chemins, utile en transition.
 
-Côté nœud : URL de la lampe dans le champ **Lampe 1 URL** de la page web (valeur initiale : `lamp_http_base`, ex. `http://192.168.1.60/light/lampe`), et le secret `lamp_http_basic` (voir `../secrets.yaml.example`).
+Côté nœud : URL de la lampe dans le champ **Lampe 1 URL** de la page web (valeur initiale : `lamp_http_base`, ex. `http://192.168.1.60/light/lampe`), et le secret `lamp_http_basic` (voir `secrets.yaml.example`).
 
 **Lampe sur interrupteur sans neutre : Sonoff BASIC R4** (ESP32-C3), monté au point lumineux ou dans la boîte de dérivation où L et N sont permanents, interrupteur mural sur l'entrée SW. Config prête : `lamp_sonoff_basic_r4.yaml` (relais GPIO4, entrée SW GPIO5, bouton GPIO9, `web_server` avec auth, entité `lampe`). Le mode « magic switch » inverse la lampe à chaque changement de l'interrupteur (simple ou va-et-vient) : pas de conflit avec le radar. Le premier flash se fait par adaptateur série 3,3 V (bouton maintenu à la mise sous tension), puis OTA. Avec ce fichier : `lamp_http_base: http://<ip lampe>/light/lampe`.
 

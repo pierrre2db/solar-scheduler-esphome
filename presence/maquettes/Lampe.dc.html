@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Lampe Sonoff, page web</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 480px; height: 760px; box-sizing: border-box; background: #e9edf1; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; color: #1b2733; font-size: 15px; display: flex; flex-direction: column">
+
+<div style="background: #14212d; color: #f2f5f8; padding: 24px 28px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<div style="font-size: 24px; font-weight: 650">Lampe Salon</div>
+<span style="background: #1f8a4c; color: #fff; font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: 999px">En ligne</span>
+</div>
+<div style="font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; color: #9fb0c0">lampe-salon · 192.168.1.60 · Sonoff BASIC R4</div>
+</div>
+
+<div style="padding: 24px 28px 0 28px; display: flex; flex-direction: column; gap: 20px">
+
+<div style="background: #fff; border: 1px solid #d3dae1; border-radius: 10px; padding: 22px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 20px; font-weight: 650">Lampe</div>
+<div style="font-size: 13px; color: #5d6b78">Allumée par le radar il y a 2 min</div>
+</div>
+<button type="button" role="switch" aria-checked="true" aria-label="Lampe" style="width: 68px; height: 38px; border-radius: 19px; border: 0; padding: 0; position: relative; background: #1d6fe0"><span style="position: absolute; top: 4px; left: 34px; width: 30px; height: 30px; border-radius: 50%; background: #fff"></span></button>
+</div>
+
+<div style="background: #fff; border: 1px solid #d3dae1; border-radius: 10px; overflow: hidden">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 9px 20px; border-top: {{r.border}}; min-height: 48px; box-sizing: border-box">
+<div style="font-size: 15px">{{r.label}}</div>
+<sc-if value="{{r.isPill}}" hint-placeholder-val="{{ true }}">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.04em; padding: 4px 10px; border-radius: 6px; background: {{r.pillBg}}; color: {{r.pillFg}}">{{r.pillText}}</span>
+</sc-if>
+<sc-if value="{{r.isButton}}" hint-placeholder-val="{{ false }}">
+<button type="button" style="height: 34px; padding: 0 16px; border: 1px solid #1d5fb4; background: #fff; color: #1d5fb4; border-radius: 6px; font-size: 14px; font-weight: 600">Appuyer</button>
+</sc-if>
+</div>
+</sc-for>
+</div>
+
+<div style="background: #fff; border: 1px solid #d3dae1; border-radius: 10px; overflow: hidden">
+<div style="padding: 12px 20px; background: #f4f7f9; font-weight: 650; font-size: 15px">Journal</div>
+<div style="padding: 12px 20px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; line-height: 1.7; color: #34424f; display: flex; flex-direction: column">
+<sc-for list="{{logs}}" as="l" hint-placeholder-count="5">
+<div><span style="color: #7a8793">{{l.t}}</span> <span style="color: {{l.c}}">{{l.msg}}</span></div>
+</sc-for>
+</div>
+</div>
+
+<div style="font-size: 13px; line-height: 1.5; color: #5d6b78">Appui court sur le bouton du module : bascule la lampe. Appui long de 8 s : ouvre le hotspot de secours pour changer de WiFi.</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":480,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const pill = (label, on, first) => ({
+      label: label, isPill: true, isButton: false, on: on,
+      border: first ? 'none' : '1px solid #e3e8ed',
+      pillBg: on ? '#dff3e6' : '#e6eaee',
+      pillFg: on ? '#14693a' : '#4c5a67',
+      pillText: on ? 'ON' : 'OFF'
+    });
+    return {
+      rows: [
+        pill('Interrupteur mural', true, true),
+        pill('Bouton', false, false),
+        { label: 'Hotspot WiFi (reset)', isPill: false, isButton: true, border: '1px solid #e3e8ed' }
+      ],
+      logs: [
+        { t: '21:04:12', msg: 'POST /light/lampe/turn_on  200', c: '#14693a' },
+        { t: '21:04:12', msg: 'Lampe allumée', c: '#34424f' },
+        { t: '21:31:47', msg: 'POST /light/lampe/turn_off  200', c: '#14693a' },
+        { t: '21:31:47', msg: 'Lampe éteinte', c: '#34424f' },
+        { t: '22:10:05', msg: 'Interrupteur mural : bascule', c: '#34424f' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
