@@ -1,0 +1,486 @@
+substitutions:
+  # Identité du nœud (un fichier par pièce : copier et changer name/friendly_name)
+  name: presence-salon
+  friendly_name: Presence Salon
+  # Lampe pilotée via Home Assistant (entity_id d'un light.* ou switch.*)
+  lamp_entity: light.salon
+  # Serveur de temps local (Pico W, voir presence/pico_w_timesync) ; pool.ntp.org en secours
+  ntp_server: 192.168.1.50
+  # Position (le mode "Nuit seulement" utilise le soleil, comme solar_scheduler.yaml)
+  latitude: "50.4674"
+  longitude: "4.8675"
+  # UART du radar LD2410 (UART0 reste au logger)
+  radar_tx_pin: GPIO5
+  radar_rx_pin: GPIO6
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+  level: INFO
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+  # Latence minimale : sans ça, le radio dort entre les beacons (+100 ms de jitter)
+  power_save_mode: none
+  ap:
+    ssid: "${friendly_name} AP"
+    password: !secret ap_password
+
+captive_portal:
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+api:
+  encryption:
+    key: !secret api_key
+
+time:
+  - platform: sntp
+    id: sntp_time
+    update_interval: 15min
+    timezone: Europe/Brussels
+    servers:
+      - ${ntp_server}
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+
+sun:
+  id: soleil
+  latitude: ${latitude}
+  longitude: ${longitude}
+
+uart:
+  id: uart_radar
+  tx_pin: ${radar_tx_pin}
+  rx_pin: ${radar_rx_pin}
+  baud_rate: 256000
+  parity: NONE
+  stop_bits: 1
+
+ld2410:
+  id: radar
+  uart_id: uart_radar
+
+globals:
+  # Pic d'énergie observé par porte (0-8) pendant le calibrage, pièce vide
+  - id: cal_max_move
+    type: std::array<float, 9>
+  - id: cal_max_still
+    type: std::array<float, 9>
+  - id: calibrage_actif
+    type: bool
+    initial_value: "false"
+
+sensor:
+  - platform: ld2410
+    ld2410_id: radar
+    moving_distance:
+      name: "Distance mouvement"
+    still_distance:
+      name: "Distance statique"
+    moving_energy:
+      name: "Énergie mouvement"
+    still_energy:
+      name: "Énergie statique"
+    detection_distance:
+      name: "Distance détection"
+    # Énergies par porte : publiées uniquement en mode ingénierie
+    g0:
+      move_energy:
+        id: g0_move_energy
+        name: "G0 Énergie mouvement"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[0] = std::max(id(cal_max_move)[0], x);'
+      still_energy:
+        id: g0_still_energy
+        name: "G0 Énergie statique"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[0] = std::max(id(cal_max_still)[0], x);'
+    g1:
+      move_energy:
+        id: g1_move_energy
+        name: "G1 Énergie mouvement"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[1] = std::max(id(cal_max_move)[1], x);'
+      still_energy:
+        id: g1_still_energy
+        name: "G1 Énergie statique"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[1] = std::max(id(cal_max_still)[1], x);'
+    g2:
+      move_energy:
+        id: g2_move_energy
+        name: "G2 Énergie mouvement"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[2] = std::max(id(cal_max_move)[2], x);'
+      still_energy:
+        id: g2_still_energy
+        name: "G2 Énergie statique"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[2] = std::max(id(cal_max_still)[2], x);'
+    g3:
+      move_energy:
+        id: g3_move_energy
+        name: "G3 Énergie mouvement"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[3] = std::max(id(cal_max_move)[3], x);'
+      still_energy:
+        id: g3_still_energy
+        name: "G3 Énergie statique"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[3] = std::max(id(cal_max_still)[3], x);'
+    g4:
+      move_energy:
+        id: g4_move_energy
+        name: "G4 Énergie mouvement"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[4] = std::max(id(cal_max_move)[4], x);'
+      still_energy:
+        id: g4_still_energy
+        name: "G4 Énergie statique"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[4] = std::max(id(cal_max_still)[4], x);'
+    g5:
+      move_energy:
+        id: g5_move_energy
+        name: "G5 Énergie mouvement"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[5] = std::max(id(cal_max_move)[5], x);'
+      still_energy:
+        id: g5_still_energy
+        name: "G5 Énergie statique"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[5] = std::max(id(cal_max_still)[5], x);'
+    g6:
+      move_energy:
+        id: g6_move_energy
+        name: "G6 Énergie mouvement"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[6] = std::max(id(cal_max_move)[6], x);'
+      still_energy:
+        id: g6_still_energy
+        name: "G6 Énergie statique"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[6] = std::max(id(cal_max_still)[6], x);'
+    g7:
+      move_energy:
+        id: g7_move_energy
+        name: "G7 Énergie mouvement"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[7] = std::max(id(cal_max_move)[7], x);'
+      still_energy:
+        id: g7_still_energy
+        name: "G7 Énergie statique"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[7] = std::max(id(cal_max_still)[7], x);'
+    g8:
+      move_energy:
+        id: g8_move_energy
+        name: "G8 Énergie mouvement"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[8] = std::max(id(cal_max_move)[8], x);'
+      still_energy:
+        id: g8_still_energy
+        name: "G8 Énergie statique"
+        on_value:
+          then:
+            - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[8] = std::max(id(cal_max_still)[8], x);'
+  - platform: wifi_signal
+    name: "Signal WiFi"
+    update_interval: 60s
+    entity_category: diagnostic
+
+binary_sensor:
+  - platform: ld2410
+    ld2410_id: radar
+    has_target:
+      id: radar_cible
+      name: "Cible radar"
+    has_moving_target:
+      name: "Cible en mouvement"
+    has_still_target:
+      name: "Cible statique"
+  # Présence lissée : s'allume tout de suite, s'éteint après le délai de maintien
+  - platform: template
+    id: presence
+    name: "Présence"
+    device_class: occupancy
+    lambda: "return id(radar_cible).state;"
+    filters:
+      - delayed_off: !lambda "return (uint32_t) (id(delai_maintien).state * 1000);"
+    on_press:
+      then:
+        - script.execute: lampe_on
+    on_release:
+      then:
+        - script.execute: lampe_off
+
+number:
+  - platform: ld2410
+    ld2410_id: radar
+    timeout:
+      name: "Timeout radar"
+    max_move_distance_gate:
+      name: "Porte max mouvement"
+    max_still_distance_gate:
+      name: "Porte max statique"
+    g0:
+      move_threshold:
+        id: g0_move_threshold
+        name: "G0 Seuil mouvement"
+      still_threshold:
+        id: g0_still_threshold
+        name: "G0 Seuil statique"
+    g1:
+      move_threshold:
+        id: g1_move_threshold
+        name: "G1 Seuil mouvement"
+      still_threshold:
+        id: g1_still_threshold
+        name: "G1 Seuil statique"
+    g2:
+      move_threshold:
+        id: g2_move_threshold
+        name: "G2 Seuil mouvement"
+      still_threshold:
+        id: g2_still_threshold
+        name: "G2 Seuil statique"
+    g3:
+      move_threshold:
+        id: g3_move_threshold
+        name: "G3 Seuil mouvement"
+      still_threshold:
+        id: g3_still_threshold
+        name: "G3 Seuil statique"
+    g4:
+      move_threshold:
+        id: g4_move_threshold
+        name: "G4 Seuil mouvement"
+      still_threshold:
+        id: g4_still_threshold
+        name: "G4 Seuil statique"
+    g5:
+      move_threshold:
+        id: g5_move_threshold
+        name: "G5 Seuil mouvement"
+      still_threshold:
+        id: g5_still_threshold
+        name: "G5 Seuil statique"
+    g6:
+      move_threshold:
+        id: g6_move_threshold
+        name: "G6 Seuil mouvement"
+      still_threshold:
+        id: g6_still_threshold
+        name: "G6 Seuil statique"
+    g7:
+      move_threshold:
+        id: g7_move_threshold
+        name: "G7 Seuil mouvement"
+      still_threshold:
+        id: g7_still_threshold
+        name: "G7 Seuil statique"
+    g8:
+      move_threshold:
+        id: g8_move_threshold
+        name: "G8 Seuil mouvement"
+      still_threshold:
+        id: g8_still_threshold
+        name: "G8 Seuil statique"
+  - platform: template
+    id: delai_maintien
+    name: "Délai de maintien (s)"
+    min_value: 5
+    max_value: 1800
+    step: 5
+    initial_value: 120
+    mode: box
+    optimistic: true
+    restore_value: true
+    unit_of_measurement: "s"
+    icon: "mdi:timer-outline"
+  - platform: template
+    id: cal_duree
+    name: "Calibrage durée (s)"
+    min_value: 15
+    max_value: 300
+    step: 5
+    initial_value: 60
+    mode: box
+    optimistic: true
+    restore_value: true
+    unit_of_measurement: "s"
+    entity_category: config
+  - platform: template
+    id: cal_marge
+    name: "Calibrage marge"
+    min_value: 0
+    max_value: 50
+    step: 1
+    initial_value: 10
+    mode: box
+    optimistic: true
+    restore_value: true
+    entity_category: config
+    icon: "mdi:plus-minus-variant"
+
+select:
+  - platform: ld2410
+    ld2410_id: radar
+    distance_resolution:
+      name: "Résolution distance"
+    baud_rate:
+      name: "Baud rate radar"
+      entity_category: diagnostic
+
+switch:
+  - platform: ld2410
+    ld2410_id: radar
+    engineering_mode:
+      id: mode_ingenieur
+      name: "Mode ingénierie"
+    bluetooth:
+      name: "Bluetooth radar"
+      entity_category: diagnostic
+  - platform: template
+    id: nuit_seulement
+    name: "Nuit seulement"
+    icon: "mdi:weather-night"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+  - platform: template
+    id: auto_lampe
+    name: "Pilotage lampe"
+    icon: "mdi:lightbulb-auto"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
+text_sensor:
+  - platform: ld2410
+    ld2410_id: radar
+    version:
+      name: "Firmware radar"
+      entity_category: diagnostic
+  - platform: template
+    id: cal_statut
+    name: "Calibrage statut"
+    icon: "mdi:tune"
+
+button:
+  - platform: ld2410
+    ld2410_id: radar
+    factory_reset:
+      name: "Radar reset usine"
+      entity_category: config
+    restart:
+      name: "Radar redémarrer"
+      entity_category: config
+    query_params:
+      name: "Radar relire paramètres"
+      entity_category: config
+  - platform: template
+    name: "Calibrer (pièce vide)"
+    icon: "mdi:tune-vertical"
+    on_press:
+      then:
+        - script.execute: calibrer
+
+script:
+  - id: lampe_on
+    then:
+      - if:
+          condition:
+            and:
+              - switch.is_on: auto_lampe
+              - lambda: |-
+                  if (!id(nuit_seulement).state) return true;
+                  return id(soleil).elevation() < -0.833;
+          then:
+            - homeassistant.action:
+                action: homeassistant.turn_on
+                data:
+                  entity_id: ${lamp_entity}
+  - id: lampe_off
+    then:
+      - if:
+          condition:
+            switch.is_on: auto_lampe
+          then:
+            - homeassistant.action:
+                action: homeassistant.turn_off
+                data:
+                  entity_id: ${lamp_entity}
+
+  # Calibrage : pièce vide pendant "Calibrage durée". On relève le pic d'énergie de
+  # chaque porte puis seuil = pic + marge (plafonné à 100).
+  - id: calibrer
+    mode: single
+    then:
+      - lambda: |-
+          id(cal_max_move).fill(0);
+          id(cal_max_still).fill(0);
+          id(calibrage_actif) = true;
+          id(cal_statut).publish_state("Calibrage en cours : quitter la pièce");
+      - switch.turn_on: mode_ingenieur
+      - delay: !lambda "return (uint32_t) id(cal_duree).state * 1000;"
+      - lambda: |-
+          id(calibrage_actif) = false;
+          id(cal_statut).publish_state("Application des seuils");
+      - script.execute: appliquer_seuils
+      - switch.turn_off: mode_ingenieur
+      - lambda: |-
+          std::string s = "OK (marge " + to_string((int) id(cal_marge).state) + ") pics mvt:";
+          for (float v : id(cal_max_move)) s += " " + to_string((int) v);
+          id(cal_statut).publish_state(s);
+
+  # Écrit les 18 seuils avec une pause : le LD2410 traite une commande à la fois.
+  - id: appliquer_seuils
+    mode: single
+    then:
+      - repeat:
+          count: 9
+          then:
+            - lambda: |-
+                number::Number *mv[9] = {id(g0_move_threshold), id(g1_move_threshold), id(g2_move_threshold), id(g3_move_threshold), id(g4_move_threshold), id(g5_move_threshold), id(g6_move_threshold), id(g7_move_threshold), id(g8_move_threshold)};
+                int g = iteration;
+                float marge = id(cal_marge).state;
+                auto m = mv[g]->make_call();
+                m.set_value(std::min(100.0f, std::ceil(id(cal_max_move)[g] + marge)));
+                m.perform();
+            - delay: 300ms
+            - lambda: |-
+                number::Number *st[9] = {id(g0_still_threshold), id(g1_still_threshold), id(g2_still_threshold), id(g3_still_threshold), id(g4_still_threshold), id(g5_still_threshold), id(g6_still_threshold), id(g7_still_threshold), id(g8_still_threshold)};
+                int g = iteration;
+                float marge = id(cal_marge).state;
+                auto s = st[g]->make_call();
+                s.set_value(std::min(100.0f, std::ceil(id(cal_max_still)[g] + marge)));
+                s.perform();
+            - delay: 300ms

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Ajouté
+- `presence/` : nœud ESP32-C3 + radar LD2410 pilotant des lampes via Home Assistant, avec calibrage automatique par porte (pièce vide, pic + marge)
+- `presence/pico_w_timesync/` : serveur SNTP MicroPython pour Pico W (temps local des nœuds)
+
 ### Corrigé
 - Configuration valide ESPHome : remplacement des `input_*` (Home Assistant) par `select`, `number` et `datetime` template
 - `on_sunrise`/`on_sunset` remplacés par une évaluation chaque minute (offsets négatifs possibles)
