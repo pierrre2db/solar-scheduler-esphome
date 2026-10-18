@@ -27,7 +27,7 @@ Contrôleur solaire intelligent pour ESP32-C3.
 
 ## 📡 Capteurs de présence radar
 
-Nœuds LD2410 + Pico W (synchro de temps) pour piloter des lampes : voir [`presence/README.md`](presence/README.md).
+Nœuds LD2410 + Pico W (synchro de temps) pour piloter des lampes : projet séparé, [presence-radar-esphome](https://github.com/pierrre2db/presence-radar-esphome).
 
 ## 🚀 Installation
 ```bash
