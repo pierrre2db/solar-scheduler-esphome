@@ -41,13 +41,23 @@ Valable pour le nœud radar et la lampe Sonoff.
 
 **Forcer le hotspot** : bouton **Hotspot WiFi (reset)** (nœud et lampe) ou, sur la lampe Sonoff, appui long de 8 s sur le bouton du module (appui court = bascule la lampe). Le module enregistre un réseau bidon (`hotspot-reset`), redémarre, ne le trouve pas et ouvre son hotspot après 60 s. Tant que tu n'as pas saisi ton vrai réseau dans le portail, il reste hors ligne (l'interrupteur mural de la lampe fonctionne quand même). Pour revenir aux valeurs de `secrets.yaml`, reflasher.
 
+## Page web de configuration
+Le nœud radar sert une page à `http://<ip du nœud>/` (identifiants `admin` / `web_password`), avec les entités regroupées :
+- **Présence** : distances, énergies, cibles, état *Présence*.
+- **Lampes** : *Pilotage lampe*, *Mode pilotage lampe*, *Nuit seulement*, *Délai de maintien*, et les trois champs **Lampe N URL**.
+- **Calibrage** : durée, marge, bouton *Calibrer*, statut, mode ingénierie.
+- **Seuils par porte** / **Énergies par porte** : réglage fin G0–G8.
+- **Système** : signal WiFi, firmware radar, resets, *Hotspot WiFi (reset)*.
+
+Les URL des lampes se modifient dans cette page, sans recompiler : les substitutions `lamp_http_base*` ne servent que de valeur initiale au premier démarrage, ensuite la valeur enregistrée prime.
+
 ## Pilotage de la lampe
 Entité **Mode pilotage lampe** (réglable sans recompiler) :
 - `HTTP direct` (défaut) : le nœud envoie `POST http://<ip lampe>/light/<id>/turn_on|turn_off` à l'API REST de `web_server`. Fonctionne sans Home Assistant. 1 nouvel essai après 500 ms en cas d'échec.
 - `Home Assistant` : action `homeassistant.turn_on|turn_off` sur `lamp_entity`.
 - `Les deux` : les deux chemins, utile en transition.
 
-Côté nœud : `lamp_http_base` (ex. `http://192.168.1.60/light/lampe`) dans `substitutions`, et le secret `lamp_http_basic` (voir `../secrets.yaml.example`).
+Côté nœud : URL de la lampe dans le champ **Lampe 1 URL** de la page web (valeur initiale : `lamp_http_base`, ex. `http://192.168.1.60/light/lampe`), et le secret `lamp_http_basic` (voir `../secrets.yaml.example`).
 
 **Lampe sur interrupteur sans neutre : Sonoff BASIC R4** (ESP32-C3), monté au point lumineux ou dans la boîte de dérivation où L et N sont permanents, interrupteur mural sur l'entrée SW. Config prête : `lamp_sonoff_basic_r4.yaml` (relais GPIO4, entrée SW GPIO5, bouton GPIO9, `web_server` avec auth, entité `lampe`). Le mode « magic switch » inverse la lampe à chaque changement de l'interrupteur (simple ou va-et-vient) : pas de conflit avec le radar. Le premier flash se fait par adaptateur série 3,3 V (bouton maintenu à la mise sous tension), puis OTA. Avec ce fichier : `lamp_http_base: http://<ip lampe>/light/lampe`.
 
@@ -69,7 +79,7 @@ light:   # ou switch: pour un relais
 - `lamp_http_basic` = `Basic ` + base64(`utilisateur:motdepasse`), identique à `web_server.auth` de la lampe : `printf 'Basic %s' "$(printf 'admin:MotDePasse' | base64)"`.
 - Pour un relais : mettre `switch` à la place de `light` dans `lamp_http_base`.
 - L'authentification HTTP Basic passe en clair sur le réseau local : à réserver à un réseau de confiance.
-- **Plusieurs lampes** : jusqu'à 3 par nœud via `lamp_http_base`, `lamp_http_base_2`, `lamp_http_base_3` (laisser `""` pour les inutilisées). Elles partagent le même `lamp_http_basic`, donc le même mot de passe `web_server`. Les envois se font l'un après l'autre : une lampe hors ligne retarde les suivantes de ~5 s au plus. En mode `Home Assistant`, `lamp_entity` accepte plusieurs entités séparées par des virgules (`light.a, light.b`).
+- **Plusieurs lampes** : jusqu'à 3 par nœud via les champs **Lampe 1/2/3 URL** (vides = inutilisés ; valeurs initiales `lamp_http_base`, `lamp_http_base_2`, `lamp_http_base_3`). Elles partagent le même `lamp_http_basic`, donc le même mot de passe `web_server`. Les envois se font l'un après l'autre : une lampe hors ligne retarde les suivantes de ~5 s au plus. En mode `Home Assistant`, `lamp_entity` accepte plusieurs entités séparées par des virgules (`light.a, light.b`).
 
 ## Calibrage
 Objectif : que le radar ne voie ni les ventilateurs, ni les rideaux, ni les plantes, tout en restant sensible.

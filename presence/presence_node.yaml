@@ -6,6 +6,7 @@ substitutions:
   lamp_entity: light.salon
   # Lampe ESPHome pilotée en direct (API REST de web_server, sans HA) :
   # http://<ip>/<domaine>/<id> avec domaine = light ou switch, id = id de l'entité sur la lampe
+  # Valeurs initiales : modifiables ensuite dans la page web du nœud (Lampes > "Lampe N URL")
   lamp_http_base: http://192.168.1.60/light/lampe
   # Lampes supplémentaires (laisser "" si inutilisées) : jusqu'à 3 lampes par nœud
   lamp_http_base_2: ""
@@ -52,6 +53,33 @@ ota:
 api:
   encryption:
     key: !secret api_key
+
+# Page de configuration (http://<ip>/) : toutes les entités regroupées par thème
+web_server:
+  port: 80
+  version: 3
+  auth:
+    username: admin
+    password: !secret web_password
+  sorting_groups:
+    - id: grp_presence
+      name: "Présence"
+      sorting_weight: 10
+    - id: grp_lampes
+      name: "Lampes"
+      sorting_weight: 20
+    - id: grp_calibrage
+      name: "Calibrage"
+      sorting_weight: 30
+    - id: grp_seuils
+      name: "Seuils par porte"
+      sorting_weight: 40
+    - id: grp_energies
+      name: "Énergies par porte"
+      sorting_weight: 50
+    - id: grp_systeme
+      name: "Système"
+      sorting_weight: 60
 
 # Pilotage direct des lampes ESPHome (POST sur web_server), sans passer par Home Assistant
 http_request:
@@ -100,25 +128,39 @@ sensor:
     ld2410_id: radar
     moving_distance:
       name: "Distance mouvement"
+      web_server:
+        sorting_group_id: grp_presence
     still_distance:
       name: "Distance statique"
+      web_server:
+        sorting_group_id: grp_presence
     moving_energy:
       name: "Énergie mouvement"
+      web_server:
+        sorting_group_id: grp_presence
     still_energy:
       name: "Énergie statique"
+      web_server:
+        sorting_group_id: grp_presence
     detection_distance:
       name: "Distance détection"
+      web_server:
+        sorting_group_id: grp_presence
     # Énergies par porte : publiées uniquement en mode ingénierie
     g0:
       move_energy:
         id: g0_move_energy
         name: "G0 Énergie mouvement"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[0] = std::max(id(cal_max_move)[0], x);'
       still_energy:
         id: g0_still_energy
         name: "G0 Énergie statique"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[0] = std::max(id(cal_max_still)[0], x);'
@@ -126,12 +168,16 @@ sensor:
       move_energy:
         id: g1_move_energy
         name: "G1 Énergie mouvement"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[1] = std::max(id(cal_max_move)[1], x);'
       still_energy:
         id: g1_still_energy
         name: "G1 Énergie statique"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[1] = std::max(id(cal_max_still)[1], x);'
@@ -139,12 +185,16 @@ sensor:
       move_energy:
         id: g2_move_energy
         name: "G2 Énergie mouvement"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[2] = std::max(id(cal_max_move)[2], x);'
       still_energy:
         id: g2_still_energy
         name: "G2 Énergie statique"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[2] = std::max(id(cal_max_still)[2], x);'
@@ -152,12 +202,16 @@ sensor:
       move_energy:
         id: g3_move_energy
         name: "G3 Énergie mouvement"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[3] = std::max(id(cal_max_move)[3], x);'
       still_energy:
         id: g3_still_energy
         name: "G3 Énergie statique"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[3] = std::max(id(cal_max_still)[3], x);'
@@ -165,12 +219,16 @@ sensor:
       move_energy:
         id: g4_move_energy
         name: "G4 Énergie mouvement"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[4] = std::max(id(cal_max_move)[4], x);'
       still_energy:
         id: g4_still_energy
         name: "G4 Énergie statique"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[4] = std::max(id(cal_max_still)[4], x);'
@@ -178,12 +236,16 @@ sensor:
       move_energy:
         id: g5_move_energy
         name: "G5 Énergie mouvement"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[5] = std::max(id(cal_max_move)[5], x);'
       still_energy:
         id: g5_still_energy
         name: "G5 Énergie statique"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[5] = std::max(id(cal_max_still)[5], x);'
@@ -191,12 +253,16 @@ sensor:
       move_energy:
         id: g6_move_energy
         name: "G6 Énergie mouvement"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[6] = std::max(id(cal_max_move)[6], x);'
       still_energy:
         id: g6_still_energy
         name: "G6 Énergie statique"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[6] = std::max(id(cal_max_still)[6], x);'
@@ -204,12 +270,16 @@ sensor:
       move_energy:
         id: g7_move_energy
         name: "G7 Énergie mouvement"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[7] = std::max(id(cal_max_move)[7], x);'
       still_energy:
         id: g7_still_energy
         name: "G7 Énergie statique"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[7] = std::max(id(cal_max_still)[7], x);'
@@ -217,17 +287,23 @@ sensor:
       move_energy:
         id: g8_move_energy
         name: "G8 Énergie mouvement"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_move)[8] = std::max(id(cal_max_move)[8], x);'
       still_energy:
         id: g8_still_energy
         name: "G8 Énergie statique"
+        web_server:
+          sorting_group_id: grp_energies
         on_value:
           then:
             - lambda: 'if (id(calibrage_actif)) id(cal_max_still)[8] = std::max(id(cal_max_still)[8], x);'
   - platform: wifi_signal
     name: "Signal WiFi"
+    web_server:
+      sorting_group_id: grp_systeme
     update_interval: 60s
     entity_category: diagnostic
 
@@ -237,100 +313,156 @@ binary_sensor:
     has_target:
       id: radar_cible
       name: "Cible radar"
+      web_server:
+        sorting_group_id: grp_presence
     has_moving_target:
       name: "Cible en mouvement"
+      web_server:
+        sorting_group_id: grp_presence
     has_still_target:
       name: "Cible statique"
+      web_server:
+        sorting_group_id: grp_presence
   # Présence lissée : s'allume tout de suite, s'éteint après le délai de maintien
   - platform: template
     id: presence
     name: "Présence"
+    web_server:
+      sorting_group_id: grp_presence
     device_class: occupancy
     lambda: "return id(radar_cible).state;"
     filters:
       - delayed_off: !lambda "return (uint32_t) (id(delai_maintien).state * 1000);"
     on_press:
       then:
-        - script.execute: lampe_on
+        - script.execute:
+            id: piloter_lampes
+            allumer: true
     on_release:
       then:
-        - script.execute: lampe_off
+        - script.execute:
+            id: piloter_lampes
+            allumer: false
 
 number:
   - platform: ld2410
     ld2410_id: radar
     timeout:
       name: "Timeout radar"
+      web_server:
+        sorting_group_id: grp_seuils
     max_move_distance_gate:
       name: "Porte max mouvement"
+      web_server:
+        sorting_group_id: grp_seuils
     max_still_distance_gate:
       name: "Porte max statique"
+      web_server:
+        sorting_group_id: grp_seuils
     g0:
       move_threshold:
         id: g0_move_threshold
         name: "G0 Seuil mouvement"
+        web_server:
+          sorting_group_id: grp_seuils
       still_threshold:
         id: g0_still_threshold
         name: "G0 Seuil statique"
+        web_server:
+          sorting_group_id: grp_seuils
     g1:
       move_threshold:
         id: g1_move_threshold
         name: "G1 Seuil mouvement"
+        web_server:
+          sorting_group_id: grp_seuils
       still_threshold:
         id: g1_still_threshold
         name: "G1 Seuil statique"
+        web_server:
+          sorting_group_id: grp_seuils
     g2:
       move_threshold:
         id: g2_move_threshold
         name: "G2 Seuil mouvement"
+        web_server:
+          sorting_group_id: grp_seuils
       still_threshold:
         id: g2_still_threshold
         name: "G2 Seuil statique"
+        web_server:
+          sorting_group_id: grp_seuils
     g3:
       move_threshold:
         id: g3_move_threshold
         name: "G3 Seuil mouvement"
+        web_server:
+          sorting_group_id: grp_seuils
       still_threshold:
         id: g3_still_threshold
         name: "G3 Seuil statique"
+        web_server:
+          sorting_group_id: grp_seuils
     g4:
       move_threshold:
         id: g4_move_threshold
         name: "G4 Seuil mouvement"
+        web_server:
+          sorting_group_id: grp_seuils
       still_threshold:
         id: g4_still_threshold
         name: "G4 Seuil statique"
+        web_server:
+          sorting_group_id: grp_seuils
     g5:
       move_threshold:
         id: g5_move_threshold
         name: "G5 Seuil mouvement"
+        web_server:
+          sorting_group_id: grp_seuils
       still_threshold:
         id: g5_still_threshold
         name: "G5 Seuil statique"
+        web_server:
+          sorting_group_id: grp_seuils
     g6:
       move_threshold:
         id: g6_move_threshold
         name: "G6 Seuil mouvement"
+        web_server:
+          sorting_group_id: grp_seuils
       still_threshold:
         id: g6_still_threshold
         name: "G6 Seuil statique"
+        web_server:
+          sorting_group_id: grp_seuils
     g7:
       move_threshold:
         id: g7_move_threshold
         name: "G7 Seuil mouvement"
+        web_server:
+          sorting_group_id: grp_seuils
       still_threshold:
         id: g7_still_threshold
         name: "G7 Seuil statique"
+        web_server:
+          sorting_group_id: grp_seuils
     g8:
       move_threshold:
         id: g8_move_threshold
         name: "G8 Seuil mouvement"
+        web_server:
+          sorting_group_id: grp_seuils
       still_threshold:
         id: g8_still_threshold
         name: "G8 Seuil statique"
+        web_server:
+          sorting_group_id: grp_seuils
   - platform: template
     id: delai_maintien
     name: "Délai de maintien (s)"
+    web_server:
+      sorting_group_id: grp_lampes
     min_value: 5
     max_value: 1800
     step: 5
@@ -343,6 +475,8 @@ number:
   - platform: template
     id: cal_duree
     name: "Calibrage durée (s)"
+    web_server:
+      sorting_group_id: grp_calibrage
     min_value: 15
     max_value: 300
     step: 5
@@ -355,6 +489,8 @@ number:
   - platform: template
     id: cal_marge
     name: "Calibrage marge"
+    web_server:
+      sorting_group_id: grp_calibrage
     min_value: 0
     max_value: 50
     step: 1
@@ -365,10 +501,55 @@ number:
     entity_category: config
     icon: "mdi:plus-minus-variant"
 
+text:
+  # Cibles HTTP des lampes, modifiables sans recompiler (valeur initiale = substitutions).
+  # Une fois changée dans la page web, la valeur enregistrée prime sur les substitutions.
+  - platform: template
+    id: lamp_url_1
+    name: "Lampe 1 URL"
+    mode: text
+    min_length: 0
+    max_length: 120
+    initial_value: "${lamp_http_base}"
+    optimistic: true
+    restore_value: true
+    entity_category: config
+    icon: "mdi:lightbulb-on-outline"
+    web_server:
+      sorting_group_id: grp_lampes
+  - platform: template
+    id: lamp_url_2
+    name: "Lampe 2 URL"
+    mode: text
+    min_length: 0
+    max_length: 120
+    initial_value: "${lamp_http_base_2}"
+    optimistic: true
+    restore_value: true
+    entity_category: config
+    icon: "mdi:lightbulb-on-outline"
+    web_server:
+      sorting_group_id: grp_lampes
+  - platform: template
+    id: lamp_url_3
+    name: "Lampe 3 URL"
+    mode: text
+    min_length: 0
+    max_length: 120
+    initial_value: "${lamp_http_base_3}"
+    optimistic: true
+    restore_value: true
+    entity_category: config
+    icon: "mdi:lightbulb-on-outline"
+    web_server:
+      sorting_group_id: grp_lampes
+
 select:
   - platform: template
     id: mode_lampe
     name: "Mode pilotage lampe"
+    web_server:
+      sorting_group_id: grp_lampes
     icon: "mdi:lightbulb-network"
     options:
       - "Home Assistant"
@@ -381,8 +562,12 @@ select:
     ld2410_id: radar
     distance_resolution:
       name: "Résolution distance"
+      web_server:
+        sorting_group_id: grp_seuils
     baud_rate:
       name: "Baud rate radar"
+      web_server:
+        sorting_group_id: grp_systeme
       entity_category: diagnostic
 
 switch:
@@ -391,18 +576,26 @@ switch:
     engineering_mode:
       id: mode_ingenieur
       name: "Mode ingénierie"
+      web_server:
+        sorting_group_id: grp_calibrage
     bluetooth:
       name: "Bluetooth radar"
+      web_server:
+        sorting_group_id: grp_systeme
       entity_category: diagnostic
   - platform: template
     id: nuit_seulement
     name: "Nuit seulement"
+    web_server:
+      sorting_group_id: grp_lampes
     icon: "mdi:weather-night"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
   - platform: template
     id: auto_lampe
     name: "Pilotage lampe"
+    web_server:
+      sorting_group_id: grp_lampes
     icon: "mdi:lightbulb-auto"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
@@ -412,10 +605,14 @@ text_sensor:
     ld2410_id: radar
     version:
       name: "Firmware radar"
+      web_server:
+        sorting_group_id: grp_systeme
       entity_category: diagnostic
   - platform: template
     id: cal_statut
     name: "Calibrage statut"
+    web_server:
+      sorting_group_id: grp_calibrage
     icon: "mdi:tune"
 
 button:
@@ -423,21 +620,31 @@ button:
     ld2410_id: radar
     factory_reset:
       name: "Radar reset usine"
+      web_server:
+        sorting_group_id: grp_systeme
       entity_category: config
     restart:
       name: "Radar redémarrer"
+      web_server:
+        sorting_group_id: grp_systeme
       entity_category: config
     query_params:
       name: "Radar relire paramètres"
+      web_server:
+        sorting_group_id: grp_systeme
       entity_category: config
   - platform: template
     name: "Calibrer (pièce vide)"
+    web_server:
+      sorting_group_id: grp_calibrage
     icon: "mdi:tune-vertical"
     on_press:
       then:
         - script.execute: calibrer
   - platform: template
     name: "Hotspot WiFi (reset)"
+    web_server:
+      sorting_group_id: grp_systeme
     icon: "mdi:wifi-cog"
     entity_category: config
     on_press:
@@ -447,70 +654,53 @@ button:
         - lambda: 'App.safe_reboot();'
 
 script:
-  - id: lampe_on
+  # Allume (allumer=true) ou éteint les lampes, par Home Assistant et/ou HTTP selon le mode.
+  # L'extinction n'est jamais bloquée par "Nuit seulement".
+  - id: piloter_lampes
+    parameters:
+      allumer: bool
     then:
       - if:
           condition:
             and:
               - switch.is_on: auto_lampe
               - lambda: |-
-                  if (!id(nuit_seulement).state) return true;
+                  if (!allumer || !id(nuit_seulement).state) return true;
                   return id(soleil).elevation() < -0.833;
           then:
             - if:
                 condition:
                   lambda: 'return id(mode_lampe).current_option() != "HTTP direct";'
                 then:
-                  - homeassistant.action:
-                      action: homeassistant.turn_on
-                      data:
-                        entity_id: ${lamp_entity}
+                  - if:
+                      condition:
+                        lambda: 'return allumer;'
+                      then:
+                        - homeassistant.action:
+                            action: homeassistant.turn_on
+                            data:
+                              entity_id: ${lamp_entity}
+                      else:
+                        - homeassistant.action:
+                            action: homeassistant.turn_off
+                            data:
+                              entity_id: ${lamp_entity}
             - if:
                 condition:
                   lambda: 'return id(mode_lampe).current_option() != "Home Assistant";'
                 then:
                   - script.execute:
                       id: lampe_http
-                      base: "${lamp_http_base}"
-                      commande: "turn_on"
+                      base: !lambda 'return id(lamp_url_1).state;'
+                      commande: !lambda 'return allumer ? "turn_on" : "turn_off";'
                   - script.execute:
                       id: lampe_http
-                      base: "${lamp_http_base_2}"
-                      commande: "turn_on"
+                      base: !lambda 'return id(lamp_url_2).state;'
+                      commande: !lambda 'return allumer ? "turn_on" : "turn_off";'
                   - script.execute:
                       id: lampe_http
-                      base: "${lamp_http_base_3}"
-                      commande: "turn_on"
-  - id: lampe_off
-    then:
-      - if:
-          condition:
-            switch.is_on: auto_lampe
-          then:
-            - if:
-                condition:
-                  lambda: 'return id(mode_lampe).current_option() != "HTTP direct";'
-                then:
-                  - homeassistant.action:
-                      action: homeassistant.turn_off
-                      data:
-                        entity_id: ${lamp_entity}
-            - if:
-                condition:
-                  lambda: 'return id(mode_lampe).current_option() != "Home Assistant";'
-                then:
-                  - script.execute:
-                      id: lampe_http
-                      base: "${lamp_http_base}"
-                      commande: "turn_off"
-                  - script.execute:
-                      id: lampe_http
-                      base: "${lamp_http_base_2}"
-                      commande: "turn_off"
-                  - script.execute:
-                      id: lampe_http
-                      base: "${lamp_http_base_3}"
-                      commande: "turn_off"
+                      base: !lambda 'return id(lamp_url_3).state;'
+                      commande: !lambda 'return allumer ? "turn_on" : "turn_off";'
 
   # POST direct sur l'API REST de web_server d'une lampe ; 1 nouvel essai si échec.
   # Appelé une fois par lampe (base vide = lampe non configurée, ignorée).
