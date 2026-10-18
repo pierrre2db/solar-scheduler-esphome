@@ -34,9 +34,11 @@ wifi:
   fast_connect: true
   # Latence minimale : sans ça, le radio dort entre les beacons (+100 ms de jitter)
   power_save_mode: none
+  # Hotspot de secours : ouvert si le WiFi est introuvable pendant 60 s (box changée, mauvais mot de passe)
   ap:
     ssid: "${friendly_name} AP"
     password: !secret ap_password
+    ap_timeout: 60s
 
 captive_portal:
 

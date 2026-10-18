@@ -32,6 +32,15 @@ Le LD2410 est en 256000 baud ; UART0 reste au logger.
 3. `esphome run presence_node.yaml`.
 4. Seulement pour le mode `Home Assistant` : autoriser les actions de l'appareil (*Paramètres → Appareils → le nœud → Configurer → Autoriser l'appareil à effectuer des actions Home Assistant*), sinon la lampe ne s'allume pas.
 
+## Config WiFi sans reflasher (hotspot de secours)
+Valable pour le nœud radar et la lampe Sonoff.
+1. Si le WiFi est introuvable pendant 60 s (box changée, nouveau mot de passe), le module ouvre un hotspot **« <friendly_name> AP »** protégé par `ap_password`.
+2. Se connecter dessus avec un téléphone : le portail captif s'ouvre (sinon `http://192.168.4.1`).
+3. Choisir le réseau et saisir le mot de passe : ils sont enregistrés en mémoire flash et utilisés en priorité aux démarrages suivants, même si `secrets.yaml` contient d'autres valeurs.
+4. Le module redémarre et se reconnecte ; le hotspot se ferme.
+
+Pas de hotspot forcé à la demande : ESPHome ne l'ouvre que si la connexion échoue. Pour forcer le cas, éteindre la box ou changer le SSID, ou reflasher via OTA/série.
+
 ## Pilotage de la lampe
 Entité **Mode pilotage lampe** (réglable sans recompiler) :
 - `HTTP direct` (défaut) : le nœud envoie `POST http://<ip lampe>/light/<id>/turn_on|turn_off` à l'API REST de `web_server`. Fonctionne sans Home Assistant. 1 nouvel essai après 500 ms en cas d'échec.
