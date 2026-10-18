@@ -69,7 +69,7 @@ light:   # ou switch: pour un relais
 - `lamp_http_basic` = `Basic ` + base64(`utilisateur:motdepasse`), identique à `web_server.auth` de la lampe : `printf 'Basic %s' "$(printf 'admin:MotDePasse' | base64)"`.
 - Pour un relais : mettre `switch` à la place de `light` dans `lamp_http_base`.
 - L'authentification HTTP Basic passe en clair sur le réseau local : à réserver à un réseau de confiance.
-- Une lampe par nœud ; pour en piloter plusieurs, dupliquer l'appel `http_request.post` dans le script `lampe_http`.
+- **Plusieurs lampes** : jusqu'à 3 par nœud via `lamp_http_base`, `lamp_http_base_2`, `lamp_http_base_3` (laisser `""` pour les inutilisées). Elles partagent le même `lamp_http_basic`, donc le même mot de passe `web_server`. Les envois se font l'un après l'autre : une lampe hors ligne retarde les suivantes de ~5 s au plus. En mode `Home Assistant`, `lamp_entity` accepte plusieurs entités séparées par des virgules (`light.a, light.b`).
 
 ## Calibrage
 Objectif : que le radar ne voie ni les ventilateurs, ni les rideaux, ni les plantes, tout en restant sensible.

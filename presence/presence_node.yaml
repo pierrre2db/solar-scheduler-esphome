@@ -7,6 +7,9 @@ substitutions:
   # Lampe ESPHome pilotée en direct (API REST de web_server, sans HA) :
   # http://<ip>/<domaine>/<id> avec domaine = light ou switch, id = id de l'entité sur la lampe
   lamp_http_base: http://192.168.1.60/light/lampe
+  # Lampes supplémentaires (laisser "" si inutilisées) : jusqu'à 3 lampes par nœud
+  lamp_http_base_2: ""
+  lamp_http_base_3: ""
   # Serveur de temps local (Pico W, voir presence/pico_w_timesync) ; pool.ntp.org en secours
   ntp_server: 192.168.1.50
   # Position (le mode "Nuit seulement" utilise le soleil, comme solar_scheduler.yaml)
@@ -468,6 +471,15 @@ script:
                 then:
                   - script.execute:
                       id: lampe_http
+                      base: "${lamp_http_base}"
+                      commande: "turn_on"
+                  - script.execute:
+                      id: lampe_http
+                      base: "${lamp_http_base_2}"
+                      commande: "turn_on"
+                  - script.execute:
+                      id: lampe_http
+                      base: "${lamp_http_base_3}"
                       commande: "turn_on"
   - id: lampe_off
     then:
@@ -489,30 +501,46 @@ script:
                 then:
                   - script.execute:
                       id: lampe_http
+                      base: "${lamp_http_base}"
+                      commande: "turn_off"
+                  - script.execute:
+                      id: lampe_http
+                      base: "${lamp_http_base_2}"
+                      commande: "turn_off"
+                  - script.execute:
+                      id: lampe_http
+                      base: "${lamp_http_base_3}"
                       commande: "turn_off"
 
-  # POST direct sur l'API REST de web_server de la lampe ; 1 nouvel essai si échec.
+  # POST direct sur l'API REST de web_server d'une lampe ; 1 nouvel essai si échec.
+  # Appelé une fois par lampe (base vide = lampe non configurée, ignorée).
+  # File d'attente : une lampe hors ligne retarde les suivantes de ~5 s au plus.
   - id: lampe_http
     mode: queued
     parameters:
+      base: string
       commande: string
     then:
-      - http_request.post:
-          url: !lambda 'return std::string("${lamp_http_base}/") + commande;'
-          request_headers:
-            Authorization: !secret lamp_http_basic
-          capture_response: false
-          on_error:
-            - logger.log:
-                level: WARN
-                format: "Lampe HTTP %s : échec, nouvel essai"
-                args: ['commande.c_str()']
-            - delay: 500ms
+      - if:
+          condition:
+            lambda: 'return !base.empty();'
+          then:
             - http_request.post:
-                url: !lambda 'return std::string("${lamp_http_base}/") + commande;'
+                url: !lambda 'return base + "/" + commande;'
                 request_headers:
                   Authorization: !secret lamp_http_basic
                 capture_response: false
+                on_error:
+                  - logger.log:
+                      level: WARN
+                      format: "Lampe HTTP %s/%s : échec, nouvel essai"
+                      args: ['base.c_str()', 'commande.c_str()']
+                  - delay: 500ms
+                  - http_request.post:
+                      url: !lambda 'return base + "/" + commande;'
+                      request_headers:
+                        Authorization: !secret lamp_http_basic
+                      capture_response: false
 
   # Calibrage : pièce vide pendant "Calibrage durée". On relève le pic d'énergie de
   # chaque porte puis seuil = pic + marge (plafonné à 100).
