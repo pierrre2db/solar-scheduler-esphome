@@ -42,6 +42,9 @@ ota:
 api:
   encryption:
     key: !secret api_key
+  # Sans Home Assistant, aucun client API ne se connecte : par défaut l'appareil
+  # redémarrerait toutes les 15 min (la lampe se rééteindrait). 0s = jamais.
+  reboot_timeout: 0s
 
 # API REST utilisée par le nœud radar : POST /light/lampe/turn_on|turn_off
 # Identifiants = secret lamp_http_basic du nœud radar.

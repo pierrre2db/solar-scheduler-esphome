@@ -53,6 +53,9 @@ ota:
 api:
   encryption:
     key: !secret api_key
+  # Sans Home Assistant, aucun client API ne se connecte : par défaut l'appareil
+  # redémarrerait toutes les 15 min (la lampe se rééteindrait). 0s = jamais.
+  reboot_timeout: 0s
 
 # Page de configuration (http://<ip>/) : toutes les entités regroupées par thème
 web_server:
@@ -666,6 +669,8 @@ script:
               - switch.is_on: auto_lampe
               - lambda: |-
                   if (!allumer || !id(nuit_seulement).state) return true;
+                  // heure inconnue (ni Pico W ni NTP joignables) : on allume plutôt que de rester dans le noir
+                  if (!id(sntp_time).now().is_valid()) return true;
                   return id(soleil).elevation() < -0.833;
           then:
             - if:

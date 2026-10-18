@@ -41,6 +41,14 @@ Valable pour le nœud radar et la lampe Sonoff.
 
 **Forcer le hotspot** : bouton **Hotspot WiFi (reset)** (nœud et lampe) ou, sur la lampe Sonoff, appui long de 8 s sur le bouton du module (appui court = bascule la lampe). Le module enregistre un réseau bidon (`hotspot-reset`), redémarre, ne le trouve pas et ouvre son hotspot après 60 s. Tant que tu n'as pas saisi ton vrai réseau dans le portail, il reste hors ligne (l'interrupteur mural de la lampe fonctionne quand même). Pour revenir aux valeurs de `secrets.yaml`, reflasher.
 
+## Si Home Assistant disparaît
+Le système tourne sans lui (mode `HTTP direct`, défaut) :
+- Radar → lampe en HTTP direct, calibrage, page web, hotspot WiFi et OTA (`esphome run` en ligne de commande) ne dépendent pas de HA.
+- `api: reboot_timeout: 0s` : sans client API, ESPHome redémarrerait sinon l'appareil toutes les 15 min (la lampe se rééteindrait).
+- L'heure vient du Pico W ou de `pool.ntp.org`. Si aucun n'est joignable après un redémarrage, *Nuit seulement* laisse la lampe s'allumer (échec sûr) au lieu de rester éteinte.
+- À prévoir : **réservations DHCP** (IP fixes) pour lampes, Pico W et nœuds, et URL de lampes en IP (pas en `.local`).
+- Perdus avec HA : historique, automatisations et notifications. Le mode `Home Assistant` ne fonctionne évidemment plus (garder `HTTP direct` ou `Les deux`).
+
 ## Page web de configuration
 Le nœud radar sert une page à `http://<ip du nœud>/` (identifiants `admin` / `web_password`), avec les entités regroupées :
 - **Présence** : distances, énergies, cibles, état *Présence*.

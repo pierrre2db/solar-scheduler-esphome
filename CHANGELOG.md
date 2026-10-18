@@ -18,6 +18,7 @@
 - Secrets (AP, OTA, API, web) déplacés dans `secrets.yaml`, `web_server` protégé
 
 ### Modifié
+- Fonctionnement sans Home Assistant : `api.reboot_timeout: 0s` (nœud et lampe), *Nuit seulement* échoue en allumant si l'heure est inconnue
 - Scripts de pilotage des lampes fusionnés en un seul (`piloter_lampes`)
 
 ### À venir
