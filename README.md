@@ -25,6 +25,10 @@ Contrôleur solaire intelligent pour ESP32-C3.
 - Latitude/longitude, broche et polarité du relais : section `substitutions` en tête de `solar_scheduler.yaml` (recompilation nécessaire).
 - Relais par défaut sur `GPIO4` (éviter GPIO2/8/9, broches de strapping de l'ESP32-C3).
 
+## 📡 Capteurs de présence radar
+
+Nœuds LD2410 + Pico W (synchro de temps) pour piloter des lampes : projet séparé, [presence-radar-esphome](https://github.com/pierrre2db/presence-radar-esphome).
+
 ## 🚀 Installation
 ```bash
 git clone https://github.com/pierrre2db/solar-scheduler-esphome.git
