@@ -118,6 +118,7 @@ select:
       - "Horaire Fixe"
       - "Sunrise"
       - "Sunset"
+      - "Manuel"
     initial_option: "Horaire Fixe"
     optimistic: true
     restore_value: true
@@ -182,9 +183,15 @@ script:
   - id: appliquer_etat
     then:
       - lambda: |-
-          auto now = id(sntp_time).now();
-          if (!now.is_valid()) return;
           std::string m = std::string(id(mode).current_option());
+          // Manuel : aucune automatisation, le relais se commande à la main.
+          if (m == "Manuel") return;
+          auto now = id(sntp_time).now();
+          if (!now.is_valid()) {
+            // Pas d'heure : le relais garde son dernier état.
+            ESP_LOGW("solar", "Heure non synchronisée : relais inchangé");
+            return;
+          }
           bool on = id(controle_relais).state;
           if (m == "Horaire Fixe") {
             int cur = now.hour * 60 + now.minute;
@@ -209,13 +216,15 @@ script:
               return t - now.second - ecart * 60;
             };
             bool lever = (m == "Sunrise");
-            int off_min = (int) (lever ? id(offset_sunrise).state : id(offset_sunset).state) * 60;
+            float off_f = lever ? id(offset_sunrise).state : id(offset_sunset).state;
+            if (std::isnan(off_f)) off_f = 0;
+            int off_sec = (int) off_f * 60;
             time_t last_sol = 0;
             for (int k = -2; k <= 1; k++) {
               auto d = ESPTime::from_epoch_local(t + k * 86400);
               auto ev = lever ? id(soleil).sunrise(d, -0.833) : id(soleil).sunset(d, -0.833);
               if (ev.has_value()) {
-                time_t e = ev->timestamp + off_min;
+                time_t e = ev->timestamp + off_sec;
                 if (e <= t && e > last_sol) last_sol = e;
               }
             }

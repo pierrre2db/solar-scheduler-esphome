@@ -11,6 +11,10 @@
 - `restore_mode: RESTORE_DEFAULT_OFF` conservé : dernier état restauré jusqu'à l'évaluation
 - Modes différenciés : Sunrise = ON à Heure Fixe (ON), OFF au lever + offset ; Sunset = ON au coucher + offset, OFF à Heure Fixe (OFF)
 - Date de calcul solaire en heure locale (`from_epoch_local`)
+- Mode `Manuel` ajouté : désactive l'automatisation (sinon le relais est recalculé toutes les 30 s et un changement manuel est annulé)
+- Offset NaN avant restauration géré (`std::isnan`), variable renommée `off_sec`
+- Journal d'avertissement quand l'heure n'est pas synchronisée
+- Documenté : variation saisonnière de Sunrise/Sunset, décalage d'1 h possible lors du changement d'heure
 - Supprimé : capteur binaire « État Relais » (doublon du switch, 60 s de retard)
 - Validé avec `esphome config` (2026.10.0). Compilation et test sur carte : non faits
 
