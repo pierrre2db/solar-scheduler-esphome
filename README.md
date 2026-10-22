@@ -21,7 +21,8 @@ Contrôleur solaire intelligent pour ESP32-C3.
 - `Horaire Fixe` : relais ON à *Heure Fixe (ON)*, OFF à *Heure Fixe (OFF)*.
 - `Sunrise` et `Sunset` : cycle jour/nuit complet — relais OFF au lever + offset, ON au coucher + offset.
 - Offsets en minutes (-120 à +120), réglables sans recompiler.
-- Au démarrage, le relais est replacé dans l'état attendu pour l'heure courante.
+- L'état voulu est recalculé au démarrage, après chaque synchro horaire, à chaque changement de réglage et toutes les 30 s : un événement manqué est rattrapé.
+- Relais éteint (`ALWAYS_OFF`) tant que l'heure n'est pas synchronisée. Vérifier la polarité du module relais (`relay_inverted`).
 - Latitude/longitude, broche et polarité du relais : section `substitutions` en tête de `solar_scheduler.yaml` (recompilation nécessaire).
 - Relais par défaut sur `GPIO4` (éviter GPIO2/8/9, broches de strapping de l'ESP32-C3).
 
