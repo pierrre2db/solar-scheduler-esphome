@@ -1,0 +1,344 @@
+# Solar Scheduler v3 : batterie + relais bistable + deep sleep (ESP32-C3 Mini).
+# NON TESTE sur carte, NON COMPILE. Voir docs/hardware-v3.md et docs/home-assistant-v3.md.
+substitutions:
+  latitude: "50.4674"
+  longitude: "4.8675"
+  # Broches (voir docs/hardware-v3.md)
+  pin_set: GPIO6          # SET relais (via MOSFET)
+  pin_reset: GPIO7        # RESET relais (via MOSFET)
+  pin_boost: GPIO10       # marche/arret de l'elevateur 5 V
+  pin_vbat: GPIO1         # ADC, diviseur 2 x 1 MOhm sur la batterie
+  pin_bouton: GPIO3       # reveil (GPIO0-5 seulement), bouton vers GND
+  # Impulsion relais : a confirmer sur la fiche du relais choisi
+  pulse_ms: "30"
+  boost_settle_ms: "150"
+  # Eveil
+  fenetre_s: "20"            # attente apres connexion (reglages poussés par Home Assistant)
+  fenetre_bouton_s: "120"    # idem apres un reveil par bouton
+  periode_max_h: "12"        # reveil periodique maximal
+  marge_min: "5"             # marge fixe avant un evenement (en plus de 10 %)
+  # Batterie
+  vbat_ratio: "2.0"          # diviseur 2 x 1 MOhm
+  vbat_min_pulse: "3.5"      # pas d'impulsion sous cette tension (V)
+
+esphome:
+  name: solar-scheduler-v3
+  friendly_name: Solar Scheduler V3
+  includes:
+    - solar_logic.h
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          auto cause = esp_sleep_get_wakeup_cause();
+          id(fenetre_ms) = (cause == ESP_SLEEP_WAKEUP_GPIO) ? ${fenetre_bouton_s} * 1000 : ${fenetre_s} * 1000;
+      - script.execute: cycle
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+# Ecriture immediate des valeurs restaurees : on dort avant les 60 s par defaut.
+preferences:
+  flash_write_interval: 0s
+
+logger:
+  level: INFO
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+  reboot_timeout: 0s
+  ap:
+    ssid: "Solar-Scheduler-V3-AP"
+    password: !secret ap_password
+
+captive_portal:
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+api:
+  reboot_timeout: 0s
+  encryption:
+    key: !secret api_key
+
+time:
+  - platform: sntp
+    id: sntp_time
+    update_interval: 6h
+    timezone: Europe/Brussels
+    on_time_sync:
+      - lambda: "id(synced) = true;"
+
+sun:
+  id: soleil
+  latitude: ${latitude}
+  longitude: ${longitude}
+
+deep_sleep:
+  id: deep_sleep_1
+  wakeup_pin:
+    number: ${pin_bouton}
+    mode: INPUT_PULLUP
+    inverted: true
+
+globals:
+  - id: relais_on          # etat commande du relais (un bistable ne le relit pas)
+    type: bool
+    restore_value: true
+    initial_value: "false"
+  - id: etat_connu         # false tant qu'aucune impulsion n'a fixe l'etat
+    type: bool
+    restore_value: true
+    initial_value: "false"
+  - id: synced
+    type: bool
+    initial_value: "false"
+  - id: fenetre_ms
+    type: uint32_t
+    initial_value: "20000"
+  - id: fenetre_ouverte
+    type: bool
+    initial_value: "true"
+  - id: sleep_s
+    type: uint32_t
+    initial_value: "60"
+  - id: want_on           # -1 : rien a faire, 0 : eteindre, 1 : allumer
+    type: int
+    initial_value: "-1"
+
+output:
+  - platform: gpio
+    pin: ${pin_set}
+    id: sortie_set
+  - platform: gpio
+    pin: ${pin_reset}
+    id: sortie_reset
+  - platform: gpio
+    pin: ${pin_boost}
+    id: sortie_boost
+
+sensor:
+  - platform: adc
+    pin: ${pin_vbat}
+    id: vbat
+    name: "Tension Batterie"
+    attenuation: 12db
+    update_interval: never
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    device_class: voltage
+    entity_category: diagnostic
+    filters:
+      - multiply: ${vbat_ratio}
+
+binary_sensor:
+  - platform: template
+    name: "Relais (etat commande)"
+    device_class: power
+    lambda: "return id(relais_on);"
+
+switch:
+  - platform: template
+    name: "Garder eveille"
+    id: garder_eveille
+    icon: "mdi:sleep-off"
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    on_turn_off:
+      - script.execute: dormir
+
+select:
+  - platform: template
+    name: "Mode"
+    id: mode
+    icon: "mdi:calendar-clock"
+    options:
+      - "Horaire Fixe"
+      - "Sunrise"
+      - "Sunset"
+      - "Manuel"
+    initial_option: "Horaire Fixe"
+    optimistic: true
+    restore_value: true
+
+number:
+  - platform: template
+    name: "Offset Sunrise (min)"
+    id: offset_sunrise
+    min_value: -120
+    max_value: 120
+    step: 1
+    initial_value: 0
+    mode: slider
+    optimistic: true
+    restore_value: true
+    unit_of_measurement: "min"
+  - platform: template
+    name: "Offset Sunset (min)"
+    id: offset_sunset
+    min_value: -120
+    max_value: 120
+    step: 1
+    initial_value: 0
+    mode: slider
+    optimistic: true
+    restore_value: true
+    unit_of_measurement: "min"
+
+datetime:
+  - platform: template
+    name: "Heure Fixe (ON)"
+    id: heure_fixe_on
+    type: time
+    initial_value: "08:00:00"
+    optimistic: true
+    restore_value: true
+  - platform: template
+    name: "Heure Fixe (OFF)"
+    id: heure_fixe_off
+    type: time
+    initial_value: "18:00:00"
+    optimistic: true
+    restore_value: true
+
+script:
+  # Impulsion SET (set = true) ou RESET : elevateur ON, impulsion, elevateur OFF.
+  - id: pulser
+    mode: queued
+    parameters:
+      set: bool
+    then:
+      - if:
+          condition:
+            lambda: "return !(id(vbat).has_state() && id(vbat).state < ${vbat_min_pulse});"
+          then:
+            - output.turn_on: sortie_boost
+            - delay: ${boost_settle_ms}ms
+            - if:
+                condition:
+                  lambda: "return set;"
+                then:
+                  - output.turn_on: sortie_set
+                  - delay: ${pulse_ms}ms
+                  - output.turn_off: sortie_set
+                else:
+                  - output.turn_on: sortie_reset
+                  - delay: ${pulse_ms}ms
+                  - output.turn_off: sortie_reset
+            - delay: 20ms
+            - output.turn_off: sortie_boost
+            - lambda: |-
+                id(relais_on) = set;
+                id(etat_connu) = true;
+          else:
+            - logger.log:
+                level: WARN
+                format: "Batterie trop basse : impulsion ignoree"
+
+  # Calcule l'etat voulu et la duree de sommeil, commande le relais si necessaire.
+  - id: evaluer
+    mode: single
+    then:
+      - lambda: |-
+          std::string m = std::string(id(mode).current_option());
+          if (m == "Manuel") return;
+          auto ntime = id(sntp_time).now();
+          if (!ntime.is_valid()) {
+            ESP_LOGW("solar", "Heure invalide : relais inchange");
+            id(sleep_s) = 600;
+            return;
+          }
+          solar::Params p;
+          p.mode = (m == "Sunrise") ? solar::SUNRISE : (m == "Sunset") ? solar::SUNSET : solar::FIXE;
+          p.on_min = id(heure_fixe_on).hour * 60 + id(heure_fixe_on).minute;
+          p.off_min = id(heure_fixe_off).hour * 60 + id(heure_fixe_off).minute;
+          float o1 = id(offset_sunrise).state; if (std::isnan(o1)) o1 = 0;
+          float o2 = id(offset_sunset).state; if (std::isnan(o2)) o2 = 0;
+          p.off_sr_s = (int) lroundf(o1) * 60;
+          p.off_ss_s = (int) lroundf(o2) * 60;
+          time_t now = ntime.timestamp;
+          auto sr = [&](time_t day, time_t *out) {
+            auto e = id(soleil).sunrise(ESPTime::from_epoch_local(day), -0.833);
+            if (!e.has_value()) return false;
+            *out = e->timestamp; return true;
+          };
+          auto ss = [&](time_t day, time_t *out) {
+            auto e = id(soleil).sunset(ESPTime::from_epoch_local(day), -0.833);
+            if (!e.has_value()) return false;
+            *out = e->timestamp; return true;
+          };
+          solar::Result r = solar::evaluate(now, p, sr, ss);
+          id(sleep_s) = solar::sleep_seconds(now, r, ${marge_min} * 60, ${periode_max_h} * 3600);
+          bool connu = id(etat_connu);
+          if (!connu || r.on != id(relais_on)) {
+            ESP_LOGI("solar", "Mode %s : relais %s", m.c_str(), r.on ? "ALLUME" : "ETEINT");
+            id(want_on) = r.on ? 1 : 0;
+          } else {
+            id(want_on) = -1;
+          }
+      - if:
+          condition:
+            lambda: "return !id(etat_connu);"
+          then:
+            # Premier demarrage : etat inconnu, on force RESET puis on laisse evaluer SET si besoin.
+            - script.execute:
+                id: pulser
+                set: false
+      - if:
+          condition:
+            lambda: "return id(want_on) == 1 && !id(relais_on);"
+          then:
+            - script.execute:
+                id: pulser
+                set: true
+      - if:
+          condition:
+            lambda: "return id(want_on) == 0 && id(relais_on);"
+          then:
+            - script.execute:
+                id: pulser
+                set: false
+
+  - id: dormir
+    mode: single
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return !id(fenetre_ouverte) && std::string(id(mode).current_option()) != "Manuel" && !id(garder_eveille).state;
+          then:
+            - script.execute: evaluer
+            - script.wait: evaluer
+            - script.wait: pulser
+            - delay: 100ms
+            - deep_sleep.enter:
+                sleep_duration: !lambda "return (uint32_t) id(sleep_s) * 1000UL;"
+
+  - id: cycle
+    mode: single
+    then:
+      - wait_until:
+          condition:
+            lambda: "return id(synced);"
+          timeout: 45s
+      - component.update: vbat
+      - delay: 100ms
+      - script.execute: evaluer
+      - delay: !lambda "return id(fenetre_ms);"
+      - lambda: "id(fenetre_ouverte) = false;"
+      - script.execute: dormir
+
+interval:
+  # Mode Manuel / « Garder eveille » : si l'utilisateur les quitte, on se rendort.
+  - interval: 30s
+    then:
+      - if:
+          condition:
+            lambda: "return !id(fenetre_ouverte);"
+          then:
+            - script.execute: dormir
