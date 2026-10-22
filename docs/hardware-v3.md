@@ -5,7 +5,7 @@
 
 ## Choix retenus
 
-- **Relais** : Same Sky **PRL3-3V-DC-1C** — bistable à 2 bobines, inverseur (SPDT). Annoncé : [10 A à 277 VAC, 30 VDC max](https://www.sameskydevices.com/product/relays/power-relays/prl3-3v-dc-1c), bobines de 11,5 Ω chacune, tension de SET/RESET minimale 2,4 V, puissance de bobine typique 800 mW ([fiche](https://www.sameskydevices.com/product/resource/prl3.pdf), valeurs d'après un extrait de recherche). **Tension de tenue diélectrique et distances d'isolement non trouvées** : à lire dans la fiche. La fiche indique que le relais part en usine à l'état RESET mais peut arriver à l'état SET après transport.
+- **Relais** : Hongfa **HFE20 bistable à 2 bobines en 5 V** (achetable à l'unité sur Amazon.fr), bobines alimentées par un **élévateur 5 V commuté pendant les impulsions**. Voir « Décision relais ». Le Same Sky PRL3-3V-DC-1C (bobines 3 V, sans élévateur) reste la cible idéale mais est introuvable à l'unité.
 - **Carte** : ESP32-C3 Mini du commerce (type « Super Mini »). Une source mesure environ [43 µA en deep sleep pour la version standard](https://mischianti.org/esp32-c3-supermini-plus-v2-high-resolution-pinout-datasheet-and-specs/) ; la version « Plus » avec LED RGB sur GPIO8 consomme 0,6 à 1,5 mA. **Mesure unique d'une source, sur une autre variante de carte** : à vérifier sur la carte réelle.
 - **Alimentation** : panneau solaire + cellule **Li-ion 1S** (voir « Alimentation retenue »).
 
@@ -41,14 +41,35 @@
 - Exemples de familles à comparer (**non vérifiés ici**) : circuits type CN3065 ou CN3791 (conçus pour le solaire), modules TP4056 (simples, sans MPPT ni coupure basse température selon le module). Lire la fiche du module précis.
 
 **Conséquences sur le circuit**
-- Tension de la cellule : 3,0 à 4,2 V. Les bobines 3 V ne doivent **pas** être branchées sur la batterie (4,2 V = 140 % de la tension nominale). Elles sont alimentées par la sortie `3V3` du régulateur de la carte, avec C1 près des bobines ; pic de 280 mA, régulateur annoncé à environ 400 mA. L'ESP et le Wi-Fi sont à l'arrêt pendant l'impulsion.
+- Tension de la cellule : 3,0 à 4,2 V. Les bobines ne sont **pas** branchées sur la batterie (tension variable, 3,0 à 4,2 V). Elles sont alimentées par l'élévateur 5 V commuté (voir « Décision relais »). L'ESP et le Wi-Fi sont à l'arrêt pendant l'impulsion.
 - Le **diviseur de mesure de la batterie** se branche sur la **cellule** (BAT+), pas sur `3V3` : 2 × 1 MΩ donne au plus 2,1 V à 4,2 V sur l'ADC. Mesurer BAT+ via GPIO1.
 - Seuils logiciels : sous environ **3,5 V**, plus d'impulsion ni de Wi-Fi (le régulateur ne tient plus 3,3 V en dessous de ~3,5 V d'après son fonctionnement standard). Alerte à environ 3,6 V. La protection de la cellule coupe vers 2,5 V : le firmware doit agir bien avant.
 - Zone de coupure du régulateur de la carte : à lire dans sa fiche (régulateur de type LDO ; non vérifié sur votre modèle).
 
-## Relais : impulsion de commande
+## Décision relais (à confirmer sur fiche)
 
-- Courant par bobine ≈ tension / 11,5 Ω : environ **280 mA à 3,2 V**, environ 313 mA à 3,6 V. Cohérent avec 800 mW typiques.
+**Constat** : les relais bistables 3 V pour le secteur sont introuvables à l'unité en France.
+- PRL3-3V-DC-1C : seul listing trouvé = Farnell, minimum 2000 pièces, environ 9 semaines (valeurs 15 A / 250 mW qui contredisent les 10 A / 800 mW trouvés ailleurs).
+- [Hongfa HFE20-1/3-1HD-L2(257)](https://www.futureelectronics.com/p/4021461) : stock 0, délai 24 semaines, minimum 10 pièces (34,10 USD les 10).
+- Panasonic DE2A-L2-3V : listing indien, **8 A seulement** ; DE1A-L2-3V (10 A) sans stock confirmé ; [DK1A-L2-3V-F chez RS](https://uk.rs-online.com/web/p/signal-relays/2474304) en rupture temporaire.
+
+**Choix** : **relais Hongfa HFE20 bistable à 2 bobines en 5 V** (Amazon.fr, 16 à 20 A selon la variante), avec une **alimentation 5 V commutée uniquement pendant les impulsions**.
+- Pourquoi : c'est la seule piste achetable à l'unité aujourd'hui sans délai de plusieurs mois.
+- Variante à privilégier : HFE20-1/005-1HD-L2 (5 V, 2 bobines). L'annonce [HFE20-3-5…L2](https://www.amazon.fr/Magnetic-Latching-HFE20-3-5-24-1HST-L2-MQXFCZUX/dp/B0DBD2CWR3) a un titre ambigu (5 V, 12 V et 24 V mélangés) : **vérifier la variante exacte** choisie et la fiche Hongfa avant achat.
+- Repli : variante 12 V ([HFE20-1/012-1HD-L2](https://www.amazon.fr/Relais-circuits-imprim%C3%A9s-HFE20-1-012-1HD-L2/dp/B07121WYJY)), avec un élévateur vers 12 V.
+
+**Conséquences sur le circuit**
+- Un élévateur Li-ion (3,0 à 4,2 V) → 5 V alimente les bobines. Il reste **éteint** hors impulsion : un élévateur allumé en permanence consomme souvent plusieurs centaines de µA à quelques mA, ce qui ruinerait l'autonomie.
+- Mise en marche de l'élévateur : GPIO10 → MOSFET inverseur → interrupteur côté batterie (ou broche EN du module si elle existe). **Module précis à choisir sur fiche** ; les modules « MT3608 » courants n'ont pas de broche EN.
+- Séquence d'une impulsion : élévateur ON → attendre la stabilisation de la tension → impulsion SET ou RESET (Q1 ou Q2) → élévateur OFF. Jamais en même temps que le Wi-Fi.
+- Courant et tension d'impulsion de la bobine 5 V, tension de SET minimale : à lire dans la fiche (**non lus**). Q1, Q2 et D1, D2 se dimensionnent avec ce courant.
+- Les diodes de roue libre D1, D2 se branchent sur le rail +5 V commuté (cathode côté +5 V).
+- Fuite à l'état éteint (diode de corps de l'élévateur, MOSFET) : à mesurer.
+- Le pic de courant sur le régulateur de la carte disparaît : les bobines ne sont plus alimentées par `3V3`.
+
+## Relais : impulsion de commande (valeurs PRL3, à titre de référence)
+
+- Pour le PRL3 3 V (non retenu) : courant par bobine ≈ tension / 11,5 Ω : environ **280 mA à 3,2 V**, environ 313 mA à 3,6 V. Cohérent avec 800 mW typiques.
 - Marge de tension : SET/RESET garantis à 2,4 V minimum. Arrêt de l'impulsion si la batterie passe sous environ 3,0 V.
 - Durée de l'impulsion : la valeur minimale est dans la fiche (non lue) ; prévoir environ 20 à 50 ms.
 - Énergie par impulsion : environ 0,003 mAh, négligeable. Le pic de 280 mA ne doit pas coïncider avec le Wi-Fi : firmware séquentiel.
@@ -65,7 +86,7 @@
    │            │
    │        3V3 ─┬── (rien d'autre : pas de RTC)
    │             ├── C1 470 µF + C2 100 nF
-   │             └── bobines PRL3 (SET / RESET)
+   │             └── (bobines : voir « Pilotage », alimentées en +5 V commuté)
   GND ───────────┴──────────────── GND
 
  Panneau 5-6 V ──[diode]── chargeur Li-ion 1S ── BAT+ / GND
@@ -74,7 +95,7 @@
 Pilotage des bobines :
 
 ```
-        3V3 ─────────┬───────────────┬───────────
+       +5V (élévateur commuté, GPIO10 → ON pendant l'impulsion)
                      │               │
                 [Bobine SET]    [Bobine RESET]
                      │ D1 ◄─┐        │ D2 ◄─┐
@@ -90,9 +111,9 @@ Pilotage des bobines :
 
 | Réf. | Composant | Remarque |
 |---|---|---|
-| K1 | Same Sky PRL3-3V-DC-1C | Brochage SET/RESET/COM/NO/NC : fiche |
-| Q1, Q2 | MOSFET canal N, seuil bas, ≥ 1 A, Rds(on) faible à 2,5 V (ex. AO3400A, **à vérifier**) | Courant 280 mA par bobine |
-| D1, D2 | Diode Schottky 1 A (ex. SS14) | Roue libre, cathode côté 3V3 |
+| K1 | Hongfa HFE20 bistable 2 bobines 5 V (ex. HFE20-1/005-1HD-L2) | Variante, brochage, courant de bobine : fiche |
+| Q1, Q2 | MOSFET canal N, seuil bas, ≥ 1 A, Rds(on) faible à 2,5 V (ex. AO3400A, **à vérifier**) | Courant de bobine 5 V : fiche (non lu) |
+| D1, D2 | Diode Schottky 1 A (ex. SS14) | Roue libre, cathode côté +5 V |
 | R1, R2 | 1 kΩ | Gate |
 | R3, R4 | 100 kΩ | Gate vers masse, **indispensable** |
 | C1 | 470 µF, faible ESR, ≥ 6,3 V | Pics Wi-Fi et bobine |
@@ -104,6 +125,8 @@ Pilotage des bobines :
 | BT1 | Cellule Li-ion 18650 protégée, 1S, 2000 à 3000 mAh + support | Voir « Alimentation retenue » |
 | PV1 | Panneau solaire 5 à 6 V, 0,5 à 1 W | + diode anti-retour |
 | U1 | Module chargeur solaire Li-ion 1S avec coupure sous 0 °C | **À choisir sur fiche** |
+| U3 | Élévateur Li-ion → 5 V, avec broche d'arrêt (EN) ou interrupteur côté batterie | **À choisir sur fiche**, courant de repos à l'arrêt à mesurer |
+| Q3 | MOSFET de commande de l'élévateur | Piloté par GPIO10 |
 
 ## Mesure de la batterie
 
@@ -117,6 +140,7 @@ Pilotage des bobines :
 | 6 | SET relais (via Q1) |
 | 7 | RESET relais (via Q2) |
 | 1 | ADC batterie |
+| 10 | Marche/arrêt de l'élévateur 5 V |
 | 3 | Bouton de réveil (RTC) |
 | 2, 8, 9 | Évitées (strapping, LED, BOOT) |
 
@@ -187,4 +211,4 @@ Les prix et les stocks changent : vérifier chaque annonce avant d'acheter. Rien
 | Condensateur 470 µF 10 V | [oui](https://www.amazon.fr/5x-Condensateur-470uf-6-3x12mm-Chengxing/dp/B0793V75XK) (lot de 5, ~2 €) | Choisir faible ESR si possible. |
 | Diodes SS14, PTC, support 18650, bouton, résistances | **Non recherché** | À chercher. |
 
-**Point bloquant** : le PRL3-3V-DC-1C n'est pas disponible à l'unité sur Amazon.fr. Voir les alternatives dans « Choix du relais », ou demander à un distributeur (Farnell, Mouser, RS, DigiKey).
+**Point d'attention** : le PRL3-3V-DC-1C n'est pas disponible à l'unité sur Amazon.fr. Le choix retenu est un HFE20 5 V (voir « Décision relais »).
