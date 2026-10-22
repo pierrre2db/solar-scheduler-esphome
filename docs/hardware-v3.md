@@ -63,7 +63,7 @@
    │            │                        └── diviseur batterie (GPIO1)
    │      (régulateur de la carte)
    │            │
-   │        3V3 ─┬── RTC (option), pull-ups
+   │        3V3 ─┬── (rien d'autre : pas de RTC)
    │             ├── C1 470 µF + C2 100 nF
    │             └── bobines PRL3 (SET / RESET)
   GND ───────────┴──────────────── GND
@@ -104,7 +104,6 @@ Pilotage des bobines :
 | BT1 | Cellule Li-ion 18650 protégée, 1S, 2000 à 3000 mAh + support | Voir « Alimentation retenue » |
 | PV1 | Panneau solaire 5 à 6 V, 0,5 à 1 W | + diode anti-retour |
 | U1 | Module chargeur solaire Li-ion 1S avec coupure sous 0 °C | **À choisir sur fiche** |
-| U2 | RTC RV-3028-C7 ou PCF8563 (option) | Compatibilité ESPHome à vérifier |
 
 ## Mesure de la batterie
 
@@ -119,14 +118,18 @@ Pilotage des bobines :
 | 7 | RESET relais (via Q2) |
 | 1 | ADC batterie |
 | 3 | Bouton de réveil (RTC) |
-| 4 / 5 | I2C RTC (option) : SDA / SCL |
 | 2, 8, 9 | Évitées (strapping, LED, BOOT) |
 
-## Horloge
+## Horloge (pas de RTC)
 
-- Le C3 garde l'heure en deep sleep avec une horloge RC interne **peu précise** : dérive possible de plusieurs minutes sur des sommeils de plusieurs heures.
-- Option A : resynchronisation SNTP à chaque réveil (quelques secondes de Wi-Fi).
-- Option B : RTC externe à très faible consommation (RV-3028-C7, PCF8563, RV-8803). **À éviter : DS3231** sur VCC (de l'ordre de 150 à 200 µA).
+- Décision : **pas de RTC externe**. L'heure vient du SNTP, recalée à chaque réveil avec Wi-Fi.
+- Le C3 compte le temps de sommeil avec une horloge RC interne **peu précise**. Sur un long sommeil la dérive peut atteindre plusieurs minutes (valeur non mesurée) ; un événement raté de quelques minutes n'est pas dramatique pour un lever/coucher, mais l'est pour une heure fixe stricte.
+- Stratégie proposée, **deux réveils par événement** :
+  1. Réveil de marge : environ 10 % de la durée de sommeil avant l'événement, plus quelques minutes. Connexion Wi-Fi, SNTP, calcul de la durée restante.
+  2. Court sommeil jusqu'à l'événement (marge de dérive très réduite), puis impulsion SET ou RESET.
+- Avec un ON et un OFF par jour : 4 réveils Wi-Fi par jour.
+- Si le Wi-Fi est absent au réveil de marge, le firmware garde l'heure estimée et applique l'événement à l'heure estimée.
+- À mesurer sur la carte réelle : dérive du sommeil sur 12 h, durée de connexion Wi-Fi.
 
 ## Estimation de consommation (à mesurer)
 
@@ -134,12 +137,11 @@ Pilotage des bobines :
 |---|---|
 | Carte Mini en deep sleep | ~43 µA (une source, à vérifier) |
 | Diviseur batterie | ~2 µA |
-| RTC | ~0,3 µA |
 | **Total en sommeil** | **~45 µA, soit ~1,1 mAh/jour** |
-| Réveils Wi-Fi (3 × 5 s × 100 mA) | ~0,4 mAh/jour |
+| Réveils Wi-Fi (4 × 5 s × 100 mA, voir « Horloge ») | ~0,6 mAh/jour |
 | Impulsions relais | négligeable |
 
-Total estimé : environ 1,5 mAh/jour, soit environ 1000 jours théoriques sur 1500 mAh avant autodécharge. **Si la carte garde une LED allumée, le courant monte à plusieurs mA et l'autonomie s'effondre** : mesurer d'abord.
+Total estimé : environ 1,7 mAh/jour, soit environ 900 jours théoriques sur 1500 mAh avant autodécharge. **Si la carte garde une LED allumée, le courant monte à plusieurs mA et l'autonomie s'effondre** : mesurer d'abord.
 
 ## Changements firmware prévus
 
@@ -155,7 +157,7 @@ Total estimé : environ 1,5 mAh/jour, soit environ 1000 jours théoriques sur 15
 
 - Courant inverse dans le régulateur de la carte si on injecte la batterie sur `3V3` (option A).
 - Chute de tension de la batterie pendant les pics Wi-Fi ou l'impulsion de 280 mA.
-- Dérive de l'horloge RC sans RTC externe.
+- Dérive de l'horloge RC entre deux synchronisations SNTP (compensée par un réveil de marge, voir « Horloge »).
 - Heure système d'ESPHome après un réveil de deep sleep : non vérifié.
 - Tenue diélectrique, distances d'isolement et brochage du PRL3 : non lus.
 - Protection contre l'inversion de polarité de la batterie.
@@ -166,5 +168,23 @@ Total estimé : environ 1,5 mAh/jour, soit environ 1000 jours théoriques sur 15
 1. Charge exacte : tension, courant, type (résistive ou inductive). Le contact est annoncé 10 A / 277 VAC ; une charge inductive demande une marge.
 2. ~~Batterie et recharge~~ : panneau 5 à 6 V / 0,5 à 1 W + Li-ion 1S protégée retenus. Reste à choisir le module chargeur précis (coupure basse température).
 3. Modèle exact de la carte Mini (variante, présence d'une LED d'alimentation).
-4. RTC externe, ou resynchronisation SNTP à chaque réveil ?
+4. ~~RTC externe ?~~ **Pas de RTC** : resynchronisation SNTP à chaque réveil (voir « Horloge »).
 5. Fiche officielle du PRL3 : brochage, impulsion minimale, tenue diélectrique, distances d'isolement.
+
+## Disponibilité en France (recherches Amazon.fr, à vérifier sur les fiches en direct)
+
+Les prix et les stocks changent : vérifier chaque annonce avant d'acheter. Rien n'a été commandé ni testé.
+
+| Pièce | Amazon.fr | Remarque |
+|---|---|---|
+| Carte ESP32-C3 Super Mini | [oui](https://www.amazon.fr/TECNOULAB-d%C3%A9veloppement-Supermini-Bluetooth-ESP32-C3/dp/B0CLY3TTKN) (aussi [lots de 2 à 5](https://www.amazon.fr/Youmile-JK-YM-735-P-carte-d%C3%A9veloppement-ESP32-C3/dp/B0D89YXMN3)) | Environ 6 à 10 € l'unité. Cartes de marques variées : même modèle sur le papier, **LED et régulateur à vérifier** sur la carte reçue. |
+| **Relais PRL3-3V-DC-1C** | **Non trouvé** | Seul un listing [Farnell via agrégateur](https://www.findchips.com/search/3vdc) : **minimum 2000 pièces, délai ~9 semaines**, et avec des caractéristiques (15 A, 250 mW) qui **contredisent** les 10 A / 800 mW trouvés ailleurs. Vérifier sur Farnell, Mouser, RS ou DigiKey en direct, quantité unitaire. |
+| Relais bistables 2 bobines sur Amazon.fr | [Hongfa HFE20-1/012-1HD-L2](https://www.amazon.fr/Relais-circuits-imprim%C3%A9s-HFE20-1-012-1HD-L2/dp/B07121WYJY) (**12 V**, 20 A) ; [HFE20-3-5…L2](https://www.amazon.fr/Magnetic-Latching-HFE20-3-5-24-1HST-L2-MQXFCZUX/dp/B0DBD2CWR3) (**5 V**, 16 A) | **Aucun en 3 V trouvé.** Une bobine 5 V ou 12 V exige un élévateur de tension pour les impulsions : la consommation et la complexité montent. |
+| Module chargeur solaire CN3791 | [oui](https://www.amazon.fr/Uadme-Contr%C3%B4leur-Chargeur-Batterie-Fonction/dp/B0CW9V7WW6) (aussi [ECSiNG, 2 pièces](https://www.amazon.fr/ECSiNG-Compatible-CN3791-Chargeur-Monocellule/dp/B0H12SYN5S)) | 4 à 15 €. Prendre la version **6 V** pour un panneau 6 V. **Coupure sous 0 °C non confirmée** : vérifier la présence d'une sonde NTC sur le module. |
+| Panneau solaire 6 V 1 W | [oui](https://www.amazon.fr/Panneau-Solaire-Polysilicium-Chargeur-Bricolage/dp/B08THTGHG6) (lots de 3, environ 17 €) | Annoncé ~166 mA à 6 V. |
+| Cellule Li-ion 18650 protégée | Beaucoup d'annonces, qualité très variable | Les capacités annoncées sont souvent gonflées ; une annonce vue indique « 597 Volts ». Préférer une marque connue, **vérifier la protection (PCB) et la coupure basse**, avec support. |
+| MOSFET AO3400A | [oui](https://www.amazon.fr/20PCS-AO3400A-MOSFET-SOT23-AO3400/dp/B01CCU0TVK) (SOT-23, lots) | Soudure SMD. Vérifier la fiche pour Vgs de seuil et Rds(on) à 2,5 V. |
+| Condensateur 470 µF 10 V | [oui](https://www.amazon.fr/5x-Condensateur-470uf-6-3x12mm-Chengxing/dp/B0793V75XK) (lot de 5, ~2 €) | Choisir faible ESR si possible. |
+| Diodes SS14, PTC, support 18650, bouton, résistances | **Non recherché** | À chercher. |
+
+**Point bloquant** : le PRL3-3V-DC-1C n'est pas disponible à l'unité sur Amazon.fr. Voir les alternatives dans « Choix du relais », ou demander à un distributeur (Farnell, Mouser, RS, DigiKey).
