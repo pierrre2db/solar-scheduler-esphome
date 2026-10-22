@@ -126,7 +126,9 @@ Pilotage des bobines :
 | PV1 | Panneau solaire 5 à 6 V, 0,5 à 1 W | + diode anti-retour |
 | U1 | Module chargeur solaire Li-ion 1S avec coupure sous 0 °C | **À choisir sur fiche** |
 | U3 | Élévateur Li-ion → 5 V, avec broche d'arrêt (EN) ou interrupteur côté batterie | **À choisir sur fiche**, courant de repos à l'arrêt à mesurer |
-| Q3 | MOSFET de commande de l'élévateur | Piloté par GPIO10 |
+| Q3, R7, R8 | MOSFET canal N en interrupteur côté masse de l'élévateur ; R7 1 kΩ (GPIO10 → gate), R8 100 kΩ (gate → masse) | Piloté par GPIO10 ; élévateur sans broche EN |
+| C5 | 100 µF sur le rail +5 V | Impulsion des bobines |
+| J1 | Bornier 2 points, charge secteur | **Partie secteur** : voir avertissements |
 
 ## Mesure de la batterie
 
@@ -212,3 +214,19 @@ Les prix et les stocks changent : vérifier chaque annonce avant d'acheter. Rien
 | Diodes SS14, PTC, support 18650, bouton, résistances | **Non recherché** | À chercher. |
 
 **Point d'attention** : le PRL3-3V-DC-1C n'est pas disponible à l'unité sur Amazon.fr. Le choix retenu est un HFE20 5 V (voir « Décision relais »).
+
+## Schéma pour Fusion (Fusion Electronics)
+
+Fichiers dans [`hardware/v3/`](../hardware/v3/) :
+- `solar_scheduler_v3.sch` : schéma au format EAGLE (XML), généré par `generate_schematic.py`.
+- `netlist.txt` : liste des nets (vérification : aucune broche libre, aucune broche dans deux nets).
+- Régénération : `python3 hardware/v3/generate_schematic.py`.
+
+**Importer dans Fusion** (Fusion 360, onglet Electronics) : panneau de données → *Upload* → choisir le `.sch` ; ou ouvrir un document Électronique et importer un fichier EAGLE. La procédure exacte dépend de votre version de Fusion.
+
+**Limites — à lire**
+- **Le fichier n'a pas été ouvert dans Fusion** : il est bien formé comme XML, mais je n'ai pas pu vérifier l'import. S'il est refusé, le générateur est modifiable.
+- Symboles **génériques** (boîtes), pas de boîtiers (empreintes) : le schéma ne mène pas encore à un circuit imprimé. Les brochages du relais HFE20, du chargeur et de l'élévateur sont **génériques**, à corriger sur fiche. La polarité des bobines du relais (broches A/B) est une hypothèse.
+- Les nets sont reliés par **noms d'étiquettes** (une courte liaison par broche), pas par un tracé de fils complet. Un schéma lisible demande un réarrangement manuel.
+- Licence gratuite de Fusion (usage personnel) : limites de feuilles, de couches et de taille de carte (de mémoire : 2 feuilles de schéma, 2 couches de signal, carte de 80 cm² ; à vérifier sur le site d'Autodesk). Ce schéma tient sur une feuille.
+- Partie **secteur** (J1, K1) : isolation, distances de fuite, fusible et boîtier à faire valider par un professionnel.
