@@ -7,7 +7,7 @@
 
 - **Relais** : Same Sky **PRL3-3V-DC-1C** — bistable à 2 bobines, inverseur (SPDT). Annoncé : [10 A à 277 VAC, 30 VDC max](https://www.sameskydevices.com/product/relays/power-relays/prl3-3v-dc-1c), bobines de 11,5 Ω chacune, tension de SET/RESET minimale 2,4 V, puissance de bobine typique 800 mW ([fiche](https://www.sameskydevices.com/product/resource/prl3.pdf), valeurs d'après un extrait de recherche). **Tension de tenue diélectrique et distances d'isolement non trouvées** : à lire dans la fiche. La fiche indique que le relais part en usine à l'état RESET mais peut arriver à l'état SET après transport.
 - **Carte** : ESP32-C3 Mini du commerce (type « Super Mini »). Une source mesure environ [43 µA en deep sleep pour la version standard](https://mischianti.org/esp32-c3-supermini-plus-v2-high-resolution-pinout-datasheet-and-specs/) ; la version « Plus » avec LED RGB sur GPIO8 consomme 0,6 à 1,5 mA. **Mesure unique d'une source, sur une autre variante de carte** : à vérifier sur la carte réelle.
-- **Batterie** : LiFePO4 1S ou Li-ion 1S (voir plus bas), à confirmer.
+- **Alimentation** : panneau solaire + cellule **Li-ion 1S** (voir « Alimentation retenue »).
 
 ## Cartes « Mini » : points d'attention
 
@@ -25,7 +25,26 @@
 | Risque | **Courant inverse dans le régulateur de la carte** (non vérifié) : retirer le régulateur ou ajouter une diode d'isolement, selon sa fiche. | Courant de repos du régulateur ; en dessous d'environ 3,5 V la sortie chute. |
 | Bobine | Alimentée directement par la batterie (3,0 à 3,6 V). | Alimentée par `3V3` (400 mA max annoncés, pic de bobine ≈ 280 mA + ESP) : à tester ; sinon bobine sur la batterie avec résistance série (à calculer). |
 
-**Recommandation provisoire** : option A si vous acceptez de modifier la carte (retirer le régulateur et la LED), sinon option B en validant le pic de courant sur banc.
+**Retenu : option B** (Li-ion 1S sur `5V`/`VCC`), car les chargeurs solaires du commerce visent le Li-ion. L'option A reste documentée mais n'est plus la base.
+
+## Alimentation retenue : panneau solaire + Li-ion 1S
+
+**Dimensionnement** (estimations)
+- Besoin : environ 1,5 mAh/jour à 3,7 V, soit environ 6 mWh/jour (voir « Estimation de consommation »).
+- Panneau : **5 à 6 V, 0,5 à 1 W**, monocristallin ou polycristallin, étanche. Même en hiver en Belgique (rendement très réduit), une telle puissance fournit largement plus que 6 mWh/jour. Un panneau plus gros n'apporte rien.
+- Batterie : **une cellule Li-ion 18650 protégée (circuit de protection intégré), 1S, environ 2000 à 3000 mAh**, avec support. En théorie plus d'un an d'autonomie sans soleil ; le surdimensionnement sert de marge pour l'hiver et l'autodécharge.
+
+**Chargeur solaire** : module pour Li-ion 1S (4,2 V) acceptant une entrée de panneau 5 à 6 V. Critères :
+- **Coupure de charge sous 0 °C** (NTC ou module intégré). Charger un Li-ion sous 0 °C l'abîme ; l'hiver belge le permet. Placer la cellule à l'intérieur du boîtier, à l'abri du gel.
+- Diode anti-retour sur le panneau, protection contre l'inversion de polarité.
+- Idéalement un chemin d'alimentation (la charge n'alimente pas directement le circuit).
+- Exemples de familles à comparer (**non vérifiés ici**) : circuits type CN3065 ou CN3791 (conçus pour le solaire), modules TP4056 (simples, sans MPPT ni coupure basse température selon le module). Lire la fiche du module précis.
+
+**Conséquences sur le circuit**
+- Tension de la cellule : 3,0 à 4,2 V. Les bobines 3 V ne doivent **pas** être branchées sur la batterie (4,2 V = 140 % de la tension nominale). Elles sont alimentées par la sortie `3V3` du régulateur de la carte, avec C1 près des bobines ; pic de 280 mA, régulateur annoncé à environ 400 mA. L'ESP et le Wi-Fi sont à l'arrêt pendant l'impulsion.
+- Le **diviseur de mesure de la batterie** se branche sur la **cellule** (BAT+), pas sur `3V3` : 2 × 1 MΩ donne au plus 2,1 V à 4,2 V sur l'ADC. Mesurer BAT+ via GPIO1.
+- Seuils logiciels : sous environ **3,5 V**, plus d'impulsion ni de Wi-Fi (le régulateur ne tient plus 3,3 V en dessous de ~3,5 V d'après son fonctionnement standard). Alerte à environ 3,6 V. La protection de la cellule coupe vers 2,5 V : le firmware doit agir bien avant.
+- Zone de coupure du régulateur de la carte : à lire dans sa fiche (régulateur de type LDO ; non vérifié sur votre modèle).
 
 ## Relais : impulsion de commande
 
@@ -40,11 +59,16 @@
 ```
  Batterie (LiFePO4 1S)
    │
-   ├── F1 PTC ──┬───────────────── 3V3 ──┬── ESP32-C3 Mini (broche 3V3, option A)
-   │            │                        ├── diviseur batterie
-   │       C1 470 µF + C2 100 nF         ├── RTC (option)
-   │            │                        └── bobines PRL3 (SET / RESET)
-  GND ──────────┴───────────────── GND
+   ├── F1 PTC ──┬──────────────── BAT+ ──┬── ESP32-C3 Mini (broche 5V/VCC)
+   │            │                        └── diviseur batterie (GPIO1)
+   │      (régulateur de la carte)
+   │            │
+   │        3V3 ─┬── RTC (option), pull-ups
+   │             ├── C1 470 µF + C2 100 nF
+   │             └── bobines PRL3 (SET / RESET)
+  GND ───────────┴──────────────── GND
+
+ Panneau 5-6 V ──[diode]── chargeur Li-ion 1S ── BAT+ / GND
 ```
 
 Pilotage des bobines :
@@ -77,13 +101,15 @@ Pilotage des bobines :
 | R5, R6 | 2 × 1 MΩ | Diviseur batterie |
 | C3 | 100 nF | ADC |
 | SW1 | Bouton poussoir + 100 kΩ rappel + 100 nF | Réveil |
-| BT1 | Cellule LiFePO4 1S (ou Li-ion) | Chargeur : voir questions |
+| BT1 | Cellule Li-ion 18650 protégée, 1S, 2000 à 3000 mAh + support | Voir « Alimentation retenue » |
+| PV1 | Panneau solaire 5 à 6 V, 0,5 à 1 W | + diode anti-retour |
+| U1 | Module chargeur solaire Li-ion 1S avec coupure sous 0 °C | **À choisir sur fiche** |
 | U2 | RTC RV-3028-C7 ou PCF8563 (option) | Compatibilité ESPHome à vérifier |
 
 ## Mesure de la batterie
 
-- Diviseur 2 × 1 MΩ du 3V3 vers GND, milieu sur **GPIO1** (ADC), 100 nF en parallèle de la résistance basse. Environ 1,6 µA.
-- Seuil d'alerte (par exemple 3,1 V) publié pendant la fenêtre de configuration ; aucune impulsion sous ce seuil.
+- Diviseur 2 × 1 MΩ de **BAT+** vers GND, milieu sur **GPIO1** (ADC), 100 nF en parallèle de la résistance basse. Environ 2 µA à 4,2 V.
+- Seuils : voir « Alimentation retenue ». Alerte publiée pendant la fenêtre de configuration ; aucune impulsion ni Wi-Fi sous le seuil bas.
 
 ## Affectation des broches (proposée)
 
@@ -107,7 +133,7 @@ Pilotage des bobines :
 | Poste | Courant moyen |
 |---|---|
 | Carte Mini en deep sleep | ~43 µA (une source, à vérifier) |
-| Diviseur batterie | ~1,6 µA |
+| Diviseur batterie | ~2 µA |
 | RTC | ~0,3 µA |
 | **Total en sommeil** | **~45 µA, soit ~1,1 mAh/jour** |
 | Réveils Wi-Fi (3 × 5 s × 100 mA) | ~0,4 mAh/jour |
@@ -138,7 +164,7 @@ Total estimé : environ 1,5 mAh/jour, soit environ 1000 jours théoriques sur 15
 ## Questions ouvertes
 
 1. Charge exacte : tension, courant, type (résistive ou inductive). Le contact est annoncé 10 A / 277 VAC ; une charge inductive demande une marge.
-2. Batterie : LiFePO4 ou Li-ion, capacité, **et comment la recharger** (module chargeur, panneau solaire).
+2. ~~Batterie et recharge~~ : panneau 5 à 6 V / 0,5 à 1 W + Li-ion 1S protégée retenus. Reste à choisir le module chargeur précis (coupure basse température).
 3. Modèle exact de la carte Mini (variante, présence d'une LED d'alimentation).
 4. RTC externe, ou resynchronisation SNTP à chaque réveil ?
 5. Fiche officielle du PRL3 : brochage, impulsion minimale, tenue diélectrique, distances d'isolement.
