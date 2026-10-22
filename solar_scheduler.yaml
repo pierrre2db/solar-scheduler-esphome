@@ -103,7 +103,7 @@ switch:
     pin:
       number: ${relay_pin}
       inverted: ${relay_inverted}
-    restore_mode: ALWAYS_OFF
+    restore_mode: RESTORE_DEFAULT_OFF
     on_turn_on:
       - logger.log: "Relais activé"
     on_turn_off:
@@ -197,27 +197,37 @@ script:
               on = (a < b) ? (cur >= a && cur < b) : (cur >= a || cur < b);
             }
           } else if (m == "Sunrise" || m == "Sunset") {
-            // Dernier événement passé (offset inclus) parmi plusieurs jours :
-            // lever -> jour (OFF), coucher -> nuit (ON). Si aucun événement
-            // (jour/nuit polaire) l'état est inchangé.
+            // Sunrise : ON à Heure Fixe (ON), OFF au lever + offset.
+            // Sunset  : ON au coucher + offset, OFF à Heure Fixe (OFF).
+            // État = dernier événement passé : ON si l'ON est plus récent que l'OFF.
+            // Si le côté solaire n'a aucun événement passé (jour/nuit polaire), le
+            // côté fixe l'emporte.
             time_t t = now.timestamp;
-            int off_sr = (int) id(offset_sunrise).state * 60;
-            int off_ss = (int) id(offset_sunset).state * 60;
-            time_t last_sr = 0, last_ss = 0;
+            int cur = now.hour * 60 + now.minute;
+            auto dernier_fixe = [&](int minutes) -> time_t {
+              int ecart = (cur - minutes + 1440) % 1440;
+              return t - now.second - ecart * 60;
+            };
+            bool lever = (m == "Sunrise");
+            int off_min = (int) (lever ? id(offset_sunrise).state : id(offset_sunset).state) * 60;
+            time_t last_sol = 0;
             for (int k = -2; k <= 1; k++) {
               auto d = ESPTime::from_epoch_local(t + k * 86400);
-              auto sr = id(soleil).sunrise(d, -0.833);
-              auto ss = id(soleil).sunset(d, -0.833);
-              if (sr.has_value()) {
-                time_t e = sr->timestamp + off_sr;
-                if (e <= t && e > last_sr) last_sr = e;
-              }
-              if (ss.has_value()) {
-                time_t e = ss->timestamp + off_ss;
-                if (e <= t && e > last_ss) last_ss = e;
+              auto ev = lever ? id(soleil).sunrise(d, -0.833) : id(soleil).sunset(d, -0.833);
+              if (ev.has_value()) {
+                time_t e = ev->timestamp + off_min;
+                if (e <= t && e > last_sol) last_sol = e;
               }
             }
-            if (last_sr != 0 || last_ss != 0) on = last_ss > last_sr;
+            time_t last_on, last_off;
+            if (lever) {
+              last_on = dernier_fixe(id(heure_fixe_on).hour * 60 + id(heure_fixe_on).minute);
+              last_off = last_sol;
+            } else {
+              last_on = last_sol;
+              last_off = dernier_fixe(id(heure_fixe_off).hour * 60 + id(heure_fixe_off).minute);
+            }
+            on = last_on > last_off;
           }
           if (on != id(controle_relais).state) {
             ESP_LOGI("solar", "Mode %s: relais %s", m.c_str(), on ? "ALLUMÉ" : "ÉTEINT");

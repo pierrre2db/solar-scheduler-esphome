@@ -8,7 +8,8 @@
 - Rattrape les événements manqués (tick sauté, saut d'horloge, changement d'heure été/hiver)
 - Heure ON == OFF en Horaire Fixe : relais OFF (défini explicitement)
 - `api: reboot_timeout: 0s` : plus de reboot (donc de glitch relais) quand Home Assistant est absent
-- `restore_mode: ALWAYS_OFF` : état au démarrage déterministe (OFF jusqu'à l'évaluation)
+- `restore_mode: RESTORE_DEFAULT_OFF` conservé : dernier état restauré jusqu'à l'évaluation
+- Modes différenciés : Sunrise = ON à Heure Fixe (ON), OFF au lever + offset ; Sunset = ON au coucher + offset, OFF à Heure Fixe (OFF)
 - Date de calcul solaire en heure locale (`from_epoch_local`)
 - Supprimé : capteur binaire « État Relais » (doublon du switch, 60 s de retard)
 - Validé avec `esphome config` (2026.10.0). Compilation et test sur carte : non faits
