@@ -93,4 +93,4 @@ Revue par sous-agents (`/council`) : voir [`.claude/README.md`](.claude/README.m
 
 ## 📄 Licence
 
-MIT
+MIT, voir [`LICENSE`](LICENSE).
