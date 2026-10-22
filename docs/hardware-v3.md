@@ -67,6 +67,15 @@
 - Fuite à l'état éteint (diode de corps de l'élévateur, MOSFET) : à mesurer.
 - Le pic de courant sur le régulateur de la carte disparaît : les bobines ne sont plus alimentées par `3V3`.
 
+## Charge : 3 A maximum
+
+- **Donnée utilisateur** : 3 A maximum. **Tension (230 VAC ou basse tension continue) et type de charge (résistive, moteur, alimentation à découpage, LED) non précisés.**
+- **Marge du relais** : un HFE20 annoncé pour 16 à 20 A offre une grande marge sur 3 A. Mais le calibre dépend de la tension : un contact annoncé 20 A en 250 VAC a un pouvoir de coupure bien plus faible en continu (la fiche indique souvent environ 30 VDC). À vérifier dans la fiche avant tout achat.
+- **Charge inductive ou capacitive** (moteur, pompe, alimentation à découpage, transformateur) : appel de courant à l'enclenchement très supérieur à 3 A. Le contact doit supporter cet appel (fiche : courant de crête, charge capacitive).
+- **Fusible sur la charge** : calibre à choisir selon le câble et la charge ; ordre de grandeur 4 A, temporisé si appel de courant. À valider par une personne compétente.
+- **Câblage** : conducteurs et bornier J1 prévus pour au moins 3 A avec marge ; distances d'isolement entre la partie secteur et la partie basse tension.
+- **Si la charge est en basse tension continue** (par exemple 12 ou 24 VDC) : le contact se dimensionne sur son pouvoir de coupure en DC (plus faible qu'en AC) ; un arc de coupure est possible. À préciser avant de continuer.
+
 ## Relais : impulsion de commande (valeurs PRL3, à titre de référence)
 
 - Pour le PRL3 3 V (non retenu) : courant par bobine ≈ tension / 11,5 Ω : environ **280 mA à 3,2 V**, environ 313 mA à 3,6 V. Cohérent avec 800 mW typiques.
@@ -191,7 +200,7 @@ Total estimé : environ 1,7 mAh/jour, soit environ 900 jours théoriques sur 150
 
 ## Questions ouvertes
 
-1. Charge exacte : tension, courant, type (résistive ou inductive). Le contact est annoncé 10 A / 277 VAC ; une charge inductive demande une marge.
+1. Charge : **3 A maximum** connu ; **tension (230 VAC ou basse tension continue) et type (résistive, moteur, alimentation à découpage)** à préciser.
 2. ~~Batterie et recharge~~ : panneau 5 à 6 V / 0,5 à 1 W + Li-ion 1S protégée retenus. Reste à choisir le module chargeur précis (coupure basse température).
 3. Modèle exact de la carte Mini (variante, présence d'une LED d'alimentation).
 4. ~~RTC externe ?~~ **Pas de RTC** : resynchronisation SNTP à chaque réveil (voir « Horloge »).
