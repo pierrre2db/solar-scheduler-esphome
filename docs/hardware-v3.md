@@ -219,6 +219,7 @@ Les prix et les stocks changent : vérifier chaque annonce avant d'acheter. Rien
 
 Fichiers dans [`hardware/v3/`](../hardware/v3/) :
 - `solar_scheduler_v3.sch` : schéma au format EAGLE (XML), généré par `generate_schematic.py`.
+- `schema_v3.svg` / `schema_v3.png` : **schéma lisible** (symboles, fils, étiquettes), généré par `render_svg.py`. Brochages génériques, non validé.
 - `netlist.txt` : liste des nets (vérification : aucune broche libre, aucune broche dans deux nets).
 - Régénération : `python3 hardware/v3/generate_schematic.py`.
 
