@@ -34,6 +34,14 @@ cp secrets.yaml.example secrets.yaml
 esphome run solar_scheduler.yaml
 ```
 
+## 🗳️ Conseil de revue
+
+Skill `/council` : 4 sous-agents (`council-esphome`, `council-hardware`, `council-scheduling`, `council-skeptic`) votent puis se critiquent, et un verdict est rendu.
+
+- Dans une session sur ce repo : `/council` suivi de la question, ou `/council` seul pour passer le diff en revue.
+- Le skill est dans le repo (`.claude/`), il marche aussi dans les sessions cloud.
+- Un plugin du catalogue reste possible plus tard avec `/plugin`.
+
 ## 👤 Auteur
 
 **Pierre De Dobbeleer**
