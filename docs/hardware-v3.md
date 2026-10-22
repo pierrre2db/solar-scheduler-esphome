@@ -57,7 +57,7 @@
 ## Schéma
 
 ```
- Batterie (LiFePO4 1S)
+ Batterie (Li-ion 1S, 3,0 à 4,2 V)
    │
    ├── F1 PTC ──┬──────────────── BAT+ ──┬── ESP32-C3 Mini (broche 5V/VCC)
    │            │                        └── diviseur batterie (GPIO1)
